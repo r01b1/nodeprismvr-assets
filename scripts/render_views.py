@@ -166,6 +166,7 @@ def render_views(
     zoom=1.0,
     engine="BLENDER_EEVEE",
     samples=4,
+    transparent=False,
 ):
     """
     Render *objects* (names; default: all visible meshes) from several angles.
@@ -175,6 +176,7 @@ def render_views(
     overlays the evaluated topology in orange. *focus* (a world-space point)
     and *zoom* (>1 moves closer) frame details instead of the whole object.
     *samples* sets the EEVEE render samples (4 is plenty for checks).
+    *transparent* renders without background (alpha) instead of grey.
     Colours use the "Standard" view transform, like three.js without tone
     mapping. Returns the paths of the single views and of a contact sheet.
     """
@@ -243,7 +245,7 @@ def render_views(
         render.engine = engine
         render.resolution_x = render.resolution_y = size
         render.resolution_percentage = 100
-        render.film_transparent = False
+        render.film_transparent = transparent
         render.image_settings.file_format = "PNG"
         render.image_settings.color_mode = "RGBA"
         scene.view_settings.view_transform = "Standard"

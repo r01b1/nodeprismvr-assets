@@ -32,7 +32,7 @@ official Blender Lab MCP server (https://www.blender.org/lab/mcp-server/).
 - After a restore, `bpy.data.filepath` is the snapshot. If the scene came from
   another file, the hook output names it; save there explicitly.
 - A VM that stays paused long enough is reclaimed, and the snapshot is lost
-  with it. Save asset work as `assets/<name>/<name>.blend` and commit and push
+  with it. Save asset work as `sources/<id>/<id>.blend` and commit and push
   it at milestones, e.g. when a modelling step is done.
 
 ## Time limits and long renders
@@ -104,6 +104,43 @@ and inspiration images on the CPU, through stable-diffusion.cpp.
   commercial, switch to FLUX.2 [klein] 4B (Apache 2.0).
 - Images are inspiration and reference for modelling in Blender; keep them
   outside the repo unless the user wants one committed.
+
+## Asset library
+
+The library is the point of this repo: GLB files that anyone can browse and
+download, and that the NodePrism app will load by URL.
+
+- Layout: `library/<id>/<id>.glb`, `library/<id>/preview.webp` and
+  `library/<id>/meta.json`; Blender sources in `sources/<id>/<id>.blend`;
+  library-wide fields in `library/library.json`. `library/index.json` is the
+  generated catalogue that apps read. Asset ids are lowercase kebab-case.
+- Publishing an asset:
+  1. Build it in a scene that holds only this asset (the export also saves the
+     whole scene as its source), and check it with "Visual checks".
+  2. Export with `scripts/library_export.py` through `execute_blender_code`:
+     ```python
+     path = "/home/user/nodeprismvr-assets/scripts/library_export.py"
+     exec(compile(open(path).read(), path, "exec"))
+     result = export_asset("crystal-cluster", ["CrystalCluster"], name="Crystal Cluster",
+                           description="...", tags=["crystal", "nature"])
+     ```
+     It writes the GLB, a 512 px preview with transparent background, the
+     meta.json (triangles, vertices, dimensions in three.js axes, materials)
+     and the .blend source. Look at the preview before going on.
+  3. Run `scripts/build_library_index.py`, then validate the GLB (see below).
+  4. Optionally preview the site: `scripts/build_site.sh`, then
+     `python3 -m http.server -d _site` and load it in Chromium with Playwright.
+  5. Commit and push to `main`; `.github/workflows/pages.yml` checks the index
+     and deploys the site.
+- Public URLs (once the repo is public and Pages uses GitHub Actions):
+  gallery `https://r01b1.github.io/nodeprismvr-assets/`, catalogue
+  `.../library/index.json`, files `.../library/<id>/<id>.glb`; also
+  `https://raw.githubusercontent.com/r01b1/nodeprismvr-assets/main/library/...`.
+  Both allow cross-origin loading.
+- Apps may reference published ids and file names: do not rename or delete
+  them without asking.
+- `site/` is a static page (no build step) that reads `library/index.json` and
+  shows the assets with a three.js viewer (three.js from jsDelivr, pinned).
 
 ## Asset defaults for three.js
 

@@ -5,3 +5,6 @@ __pycache__/
 
 # Snapshot of the live Blender scene (scripts/blender-mcp-server.sh)
 .blender-session/
+
+# Assembled GitHub Pages site (scripts/build_site.sh)
+_site/

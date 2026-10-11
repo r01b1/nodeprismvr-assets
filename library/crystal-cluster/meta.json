@@ -1,0 +1,29 @@
+{
+  "id": "crystal-cluster",
+  "name": "Crystal Cluster",
+  "description": "Low-poly cluster of six glowing blue crystals on a dark rock base. Origin at the bottom centre, so it stands on the ground as loaded.",
+  "tags": [
+    "crystal",
+    "decoration",
+    "glowing",
+    "low-poly",
+    "nature"
+  ],
+  "author": "NodePrism",
+  "created": "2026-10-11",
+  "file": "crystal-cluster.glb",
+  "preview": "preview.webp",
+  "source": "sources/crystal-cluster/crystal-cluster.blend",
+  "generator": "Blender 5.2.2 LTS",
+  "triangles": 212,
+  "vertices": 120,
+  "materials": [
+    "Crystal",
+    "Rock"
+  ],
+  "dimensions": {
+    "x": 1.2475,
+    "y": 1.707,
+    "z": 1.0701
+  }
+}

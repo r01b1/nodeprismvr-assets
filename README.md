@@ -5,6 +5,31 @@ assets for the nodeprismvr project
 [Blender Lab MCP server](https://www.blender.org/lab/mcp-server/) and exported
 as glTF binary (`.glb`) for the three.js app.
 
+## The library
+
+Browse the assets at **https://r01b1.github.io/nodeprismvr-assets/**.
+
+| What | URL |
+| --- | --- |
+| Gallery with 3D viewer | `https://r01b1.github.io/nodeprismvr-assets/` |
+| Catalogue for apps | `https://r01b1.github.io/nodeprismvr-assets/library/index.json` |
+| An asset | `https://r01b1.github.io/nodeprismvr-assets/library/<id>/<id>.glb` |
+
+Paths in `index.json` are relative to the index file. Loading an asset in three.js:
+
+```js
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+const base = "https://r01b1.github.io/nodeprismvr-assets/library/";
+const index = await (await fetch(base + "index.json")).json();
+const gltf = await new GLTFLoader().loadAsync(base + index.assets[0].file);
+scene.add(gltf.scene);
+```
+
+Assets are glTF 2.0 binary, +Y up, 1 unit = 1 metre, origin at the base.
+Each asset folder holds the `.glb`, a `preview.webp` and a `meta.json`; the
+Blender sources are in `sources/`.
+
 ## How the setup works
 
 | File | Purpose |
@@ -14,6 +39,8 @@ as glTF binary (`.glb`) for the three.js app.
 | `scripts/blender-mcp-server.sh` | `start` / `stop` / `restart` / `status` / `save` for a headless Blender that serves the add-on's socket on `127.0.0.1:9876`. `save` snapshots the scene to `.blender-session/scene.blend`, `start` reopens that snapshot. |
 | `scripts/render_views.py` | Runs inside Blender: renders an object from 8 angles (optionally with a wireframe overlay or zoomed on a detail) into one labelled contact sheet for visual checks. `scripts/render_views_cli.py` runs the same on a saved `.blend` from the command line, for renders too long for an MCP call. |
 | `scripts/setup-flux.sh`, `scripts/flux.sh` | FLUX.2 [klein] 9B (4-bit, via stable-diffusion.cpp on the CPU) for inspiration images. The setup builds `sd-cli` and downloads about 11 GB of weights (pinned revisions and SHA-256 sums) to `/opt/flux`; `flux.sh "prompt" out.png` generates a 512x512 image in about 11 minutes. FLUX Non-Commercial License. |
+| `scripts/library_export.py`, `scripts/build_library_index.py` | Export an asset from Blender into `library/` (GLB, preview, metadata, .blend source) and rebuild `library/index.json`. |
+| `site/`, `scripts/build_site.sh`, `.github/workflows/pages.yml` | The gallery website; the workflow assembles it with the library and deploys it to GitHub Pages on every push to `main`. |
 | `.claude/hooks/session-start.sh` | Claude Code cloud sessions only: runs the Blender scripts when a session starts and the FLUX setup in the background. |
 | `.claude/settings.json` | Registers that hook, plus a PostToolUse hook that snapshots the scene after every `execute_blender_code`, so a paused cloud VM does not lose it. |
 

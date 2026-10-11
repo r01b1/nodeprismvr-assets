@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NodePrism Asset Library</title>
+  <meta name="description" content="Free 3D assets (glTF binary) for the NodePrism VR three.js app.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 26 12 16 30 6 12Z' fill='%234d8dff'/%3E%3Cpath d='M16 2 26 12H6Z' fill='%23a9c8ff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>NodePrism Asset Library</h1>
+      <p id="library-description">Free 3D assets for the NodePrism VR app.</p>
+    </div>
+    <nav class="links">
+      <a href="library/index.json">index.json</a>
+      <a id="repo-link" href="https://github.com/r01b1/nodeprismvr-assets">GitHub</a>
+    </nav>
+  </header>
+
+  <section class="filters">
+    <input id="search" type="search" placeholder="Search assets…" aria-label="Search assets">
+    <div id="tags" class="tags" role="group" aria-label="Filter by tag"></div>
+  </section>
+
+  <main>
+    <p id="status" class="status">Loading library…</p>
+    <ul id="grid" class="grid"></ul>
+  </main>
+
+  <dialog id="viewer" aria-labelledby="viewer-title">
+    <div class="viewer">
+      <div class="stage">
+        <canvas id="canvas"></canvas>
+        <p id="viewer-status" class="viewer-status">Loading model…</p>
+        <div class="toolbar">
+          <button id="btn-wire" type="button" aria-pressed="false">Wireframe</button>
+          <button id="btn-rotate" type="button" aria-pressed="true">Auto-rotate</button>
+          <button id="btn-reset" type="button">Reset view</button>
+        </div>
+      </div>
+      <aside class="info">
+        <button id="btn-close" class="close" type="button" aria-label="Close">✕</button>
+        <h2 id="viewer-title"></h2>
+        <p id="viewer-description"></p>
+        <dl id="viewer-stats" class="stats"></dl>
+        <div id="viewer-tags" class="tags small"></div>
+        <div class="actions">
+          <a id="btn-download" class="button primary" download>Download .glb</a>
+          <button id="btn-copy" class="button" type="button">Copy URL</button>
+          <a id="btn-source" class="button" target="_blank" rel="noopener">Blender source</a>
+        </div>
+        <details class="code">
+          <summary>Use in three.js</summary>
+          <pre><code id="viewer-code"></code></pre>
+        </details>
+      </aside>
+    </div>
+  </dialog>
+</body>
+</html>
