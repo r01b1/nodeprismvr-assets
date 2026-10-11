@@ -80,6 +80,26 @@ Then open `result["sheet"]` with the Read tool.
 - Write renders outside the repo (scratchpad or `/tmp`). Send the user a sheet
   with SendUserFile when they should see progress.
 
+## Inspiration images with FLUX
+
+FLUX.2 [klein] 9B (Black Forest Labs, 4-bit quantized) generates reference
+and inspiration images on the CPU, through stable-diffusion.cpp.
+
+- The SessionStart hook runs `scripts/setup-flux.sh` in the background: it
+  builds `/opt/flux/bin/sd-cli` and downloads about 11 GB of weights to
+  `/opt/flux/models` (log: `/tmp/flux-setup.log`). In a fresh VM that takes
+  several minutes; Blender is usable meanwhile.
+- Generate with `scripts/flux.sh "prompt" /tmp/flux/name.png [sd-cli options]`,
+  e.g. `-W 768 -H 768`, `-s 42` for a fixed seed (default: random),
+  `-b 4` for several variants, or `-r reference.png` to edit an image.
+  Run it with Bash `run_in_background`, then look at the result with Read and
+  send it to the user with SendUserFile.
+- Licence: FLUX Non-Commercial License. Fine for this free, open asset
+  library; the generated images may be used freely. If the project ever turns
+  commercial, switch to FLUX.2 [klein] 4B (Apache 2.0).
+- Images are inspiration and reference for modelling in Blender; keep them
+  outside the repo unless the user wants one committed.
+
 ## Asset defaults for three.js
 
 Adjust these when the app needs something else.
