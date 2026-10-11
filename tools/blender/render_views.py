@@ -2,7 +2,7 @@
 #
 # Runs inside Blender. Through the MCP server's `execute_blender_code`:
 #
-#     path = "/home/user/nodeprismvr-assets/scripts/render_views.py"
+#     path = "/home/user/nodeprismvr-assets/tools/blender/render_views.py"
 #     exec(compile(open(path).read(), path, "exec"))
 #     result = render_views(["Crystal"], "/tmp/views/crystal", wireframe=True)
 #

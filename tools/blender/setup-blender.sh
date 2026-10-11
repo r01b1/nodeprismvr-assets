@@ -3,7 +3,7 @@
 # add-on (https://www.blender.org/lab/mcp-server/) for headless use.
 # Idempotent: steps that are already done are skipped.
 #
-# Usage: scripts/setup-blender.sh
+# Usage: tools/blender/setup-blender.sh
 set -euo pipefail
 
 BLENDER_VERSION="5.2.2"

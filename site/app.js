@@ -1,5 +1,5 @@
 // Gallery and 3D viewer for the NodePrism asset library.
-// Reads library/index.json (built by scripts/build_library_index.py).
+// Reads library/index.json (built by tools/library/build_library_index.py).
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -144,6 +144,17 @@ function setWireframe(on) {
   });
 }
 
+function licenseLink(license) {
+  if (!license) return "not set";
+  if (!library.licenseUrl || license !== library.license) return license;
+  const link = document.createElement("a");
+  link.href = library.licenseUrl;
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.textContent = license;
+  return link;
+}
+
 function fillInfo(asset) {
   const url = assetUrl(asset, "file");
   const repo = library.repository;
@@ -156,7 +167,7 @@ function fillInfo(asset) {
     ["Size", `${d.x.toFixed(2)} × ${d.y.toFixed(2)} × ${d.z.toFixed(2)} m (x × y × z)`],
     ["File", formatBytes(asset.bytes)],
     ["Materials", asset.materials.join(", ")],
-    ["License", asset.license || "not set yet"],
+    ["License", licenseLink(asset.license)],
     ["Author", asset.author],
     ["Added", asset.created],
   ];
@@ -164,7 +175,7 @@ function fillInfo(asset) {
     const dt = document.createElement("dt");
     dt.textContent = key;
     const dd = document.createElement("dd");
-    dd.textContent = value;
+    dd.append(value);
     return [dt, dd];
   }));
   $("viewer-tags").replaceChildren(...asset.tags.map((tag) => {
@@ -246,6 +257,7 @@ try {
   library = await response.json();
   if (library.description) $("library-description").textContent = library.description;
   if (library.repository) $("repo-link").href = library.repository;
+  if (library.license) $("footer-license").replaceChildren(licenseLink(library.license));
   renderTags();
   renderGrid();
   const linked = library.assets.find((asset) => `#${asset.id}` === location.hash);

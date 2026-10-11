@@ -1,14 +1,14 @@
 # Export a finished asset into the library, inside the running Blender.
 # Through the MCP server's `execute_blender_code`:
 #
-#     path = "/home/user/nodeprismvr-assets/scripts/library_export.py"
+#     path = "/home/user/nodeprismvr-assets/tools/blender/library_export.py"
 #     exec(compile(open(path).read(), path, "exec"))
 #     result = export_asset("crystal-cluster", ["CrystalCluster"], name="Crystal Cluster",
 #                           description="...", tags=["crystal", "nature"])
 #
 # Writes library/<id>/<id>.glb, library/<id>/preview.webp and
 # library/<id>/meta.json, and saves the scene as sources/<id>/<id>.blend.
-# Afterwards run scripts/build_library_index.py to update library/index.json.
+# Afterwards run tools/library/build_library_index.py to update library/index.json.
 
 import datetime
 import inspect
@@ -20,7 +20,8 @@ import tempfile
 import bpy
 from mathutils import Vector
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(inspect.currentframe().f_code.co_filename)))
+_HERE = os.path.dirname(os.path.abspath(inspect.currentframe().f_code.co_filename))
+_REPO = os.path.dirname(os.path.dirname(_HERE))
 _ID_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 
@@ -62,7 +63,7 @@ def _stats(objects):
 
 
 def _render_preview(objects, path):
-    rv_path = os.path.join(_REPO, "scripts", "render_views.py")
+    rv_path = os.path.join(_HERE, "render_views.py")
     namespace = {}
     exec(compile(open(rv_path).read(), rv_path, "exec"), namespace)
     with tempfile.TemporaryDirectory() as tmp:

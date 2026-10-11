@@ -7,7 +7,7 @@
 # calls this after every `execute_blender_code`), and `start` reopens it, so a
 # Blender that was stopped, e.g. by the cloud VM pausing, continues where it was.
 #
-# Usage: scripts/blender-mcp-server.sh {start|stop|restart|status|save} [file.blend]
+# Usage: tools/blender/blender-mcp-server.sh {start|stop|restart|status|save} [file.blend]
 set -euo pipefail
 
 BLENDER="${BLENDER_PATH:-blender}"
@@ -16,7 +16,7 @@ PORT="${BLENDER_MCP_PORT:-9876}"
 RUN_DIR="${BLENDER_MCP_RUN_DIR:-/tmp/blender-mcp}"
 PID_FILE="$RUN_DIR/blender.pid"
 LOG_FILE="$RUN_DIR/blender.log"
-SNAPSHOT="${BLENDER_MCP_SNAPSHOT:-$(cd "$(dirname "$0")/.." && pwd)/.blender-session/scene.blend}"
+SNAPSHOT="${BLENDER_MCP_SNAPSHOT:-$(cd "$(dirname "$0")/../.." && pwd)/.blender-session/scene.blend}"
 
 # Run Python code in Blender through the add-on's socket protocol (JSON
 # terminated by a null byte). Fails unless Blender answers with "ok".

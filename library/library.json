@@ -3,6 +3,7 @@
   "description": "Free 3D assets (glTF binary) for the NodePrism VR three.js app.",
   "repository": "https://github.com/r01b1/nodeprismvr-assets",
   "homepage": "https://r01b1.github.io/nodeprismvr-assets/",
-  "license": null,
-  "version": 1
+  "license": "CC0-1.0",
+  "version": 1,
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
 }

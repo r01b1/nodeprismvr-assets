@@ -1,9 +1,10 @@
 # nodeprismvr-assets
 assets for the nodeprismvr project
 
-3D models are built in [Blender](https://www.blender.org/) through the official
-[Blender Lab MCP server](https://www.blender.org/lab/mcp-server/) and exported
-as glTF binary (`.glb`) for the three.js app.
+A free (CC0) library of 3D assets for the NodePrism VR three.js app. Models
+are built in [Blender](https://www.blender.org/), here mostly through the
+official [Blender Lab MCP server](https://www.blender.org/lab/mcp-server/), and
+published as glTF binary (`.glb`).
 
 ## The library
 
@@ -30,17 +31,43 @@ Assets are glTF 2.0 binary, +Y up, 1 unit = 1 metre, origin at the base.
 Each asset folder holds the `.glb`, a `preview.webp` and a `meta.json`; the
 Blender sources are in `sources/`.
 
-## How the setup works
+## Repository layout
+
+| Path | Contents |
+| --- | --- |
+| `library/` | The published assets: `<id>/<id>.glb`, `<id>/preview.webp`, `<id>/meta.json`, and `index.json` (generated catalogue) |
+| `sources/` | Blender source file of each asset |
+| `site/` | The gallery website |
+| `tools/` | Tooling to build and publish assets (Blender, FLUX, library) |
+| `.claude/`, `.mcp.json`, `CLAUDE.md` | Configuration for building assets with Claude Code |
+
+## Contributing assets
+
+Pull requests with new assets are welcome. An asset needs:
+
+- `library/<id>/<id>.glb`: glTF 2.0 binary, +Y up, 1 unit = 1 metre, origin
+  where the object stands, Principled BSDF materials only, small polygon and
+  texture budgets (it is a VR app).
+- `library/<id>/preview.webp` (512x512, transparent background) and
+  `library/<id>/meta.json`, plus the Blender file as `sources/<id>/<id>.blend`.
+  Asset ids are lowercase kebab-case.
+- `tools/blender/library_export.py`, run inside Blender, writes all of these
+  files; then run `tools/library/build_library_index.py` to update
+  `library/index.json`.
+
+By contributing an asset you dedicate it to the public domain under CC0 1.0.
+
+## Tooling: how assets are made
 
 | File | Purpose |
 | --- | --- |
 | `.mcp.json` | Registers the `blender` MCP server (Blender Lab `blender_mcp` v1.0.3, run with `uvx`), with a 10-minute tool timeout instead of the cloud environment's 60 s. |
-| `scripts/setup-blender.sh` | Installs Blender 5.2.2 LTS (Linux x64), the Blender Lab MCP add-on 1.0.3 and the EGL/Mesa libraries for headless rendering. Downloads are checked against pinned SHA-256 sums. |
-| `scripts/blender-mcp-server.sh` | `start` / `stop` / `restart` / `status` / `save` for a headless Blender that serves the add-on's socket on `127.0.0.1:9876`. `save` snapshots the scene to `.blender-session/scene.blend`, `start` reopens that snapshot. |
-| `scripts/render_views.py` | Runs inside Blender: renders an object from 8 angles (optionally with a wireframe overlay or zoomed on a detail) into one labelled contact sheet for visual checks. `scripts/render_views_cli.py` runs the same on a saved `.blend` from the command line, for renders too long for an MCP call. |
-| `scripts/setup-flux.sh`, `scripts/flux.sh` | FLUX.2 [klein] 9B (4-bit, via stable-diffusion.cpp on the CPU) for inspiration images. The setup builds `sd-cli` and downloads about 11 GB of weights (pinned revisions and SHA-256 sums) to `/opt/flux`; `flux.sh "prompt" out.png` generates a 512x512 image in about 11 minutes. FLUX Non-Commercial License. |
-| `scripts/library_export.py`, `scripts/build_library_index.py` | Export an asset from Blender into `library/` (GLB, preview, metadata, .blend source) and rebuild `library/index.json`. |
-| `site/`, `scripts/build_site.sh`, `.github/workflows/pages.yml` | The gallery website; the workflow assembles it with the library and deploys it to GitHub Pages on every push to `main`. |
+| `tools/blender/setup-blender.sh` | Installs Blender 5.2.2 LTS (Linux x64), the Blender Lab MCP add-on 1.0.3 and the EGL/Mesa libraries for headless rendering. Downloads are checked against pinned SHA-256 sums. |
+| `tools/blender/blender-mcp-server.sh` | `start` / `stop` / `restart` / `status` / `save` for a headless Blender that serves the add-on's socket on `127.0.0.1:9876`. `save` snapshots the scene to `.blender-session/scene.blend`, `start` reopens that snapshot. |
+| `tools/blender/render_views.py` | Runs inside Blender: renders an object from 8 angles (optionally with a wireframe overlay or zoomed on a detail) into one labelled contact sheet for visual checks. `tools/blender/render_views_cli.py` runs the same on a saved `.blend` from the command line, for renders too long for an MCP call. |
+| `tools/flux/setup-flux.sh`, `tools/flux/flux.sh` | FLUX.2 [klein] 9B (4-bit, via stable-diffusion.cpp on the CPU) for inspiration images. The setup builds `sd-cli` and downloads about 11 GB of weights (pinned revisions and SHA-256 sums) to `/opt/flux`; `flux.sh "prompt" out.png` generates a 512x512 image in about 11 minutes. FLUX Non-Commercial License. |
+| `tools/blender/library_export.py`, `tools/library/build_library_index.py` | Export an asset from Blender into `library/` (GLB, preview, metadata, .blend source) and rebuild `library/index.json`. |
+| `site/`, `tools/library/build_site.sh`, `.github/workflows/pages.yml` | The gallery website; the workflow assembles it with the library and deploys it to GitHub Pages on every push to `main`. |
 | `.claude/hooks/session-start.sh` | Claude Code cloud sessions only: runs the Blender scripts when a session starts and the FLUX setup in the background. |
 | `.claude/settings.json` | Registers that hook, plus a PostToolUse hook that snapshots the scene after every `execute_blender_code`, so a paused cloud VM does not lose it. |
 
@@ -69,6 +96,14 @@ That is fine in the throwaway cloud container; on your own machine, see the
 ## Updating versions
 
 - Blender and add-on: change the versions and SHA-256 sums at the top of
-  `scripts/setup-blender.sh`.
+  `tools/blender/setup-blender.sh`.
 - MCP server: change the commit in `.mcp.json` to the commit of the new
   `blender_mcp` release tag.
+
+## License
+
+- Assets (`library/`, `sources/`): [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/),
+  public domain, see [LICENSE-ASSETS](LICENSE-ASSETS).
+- Everything else (tools, website, configuration): MIT, see [LICENSE](LICENSE).
+- FLUX.2 [klein] 9B, used for inspiration images, is not part of this
+  repository; the setup script downloads it under the FLUX Non-Commercial License.

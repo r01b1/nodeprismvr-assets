@@ -1,7 +1,7 @@
 # Command-line entry for render_views.py, for renders that take longer than
 # an MCP tool call may run. Renders a saved .blend in its own Blender process:
 #
-#     blender --background scene.blend --python scripts/render_views_cli.py -- \
+#     blender --background scene.blend --python tools/blender/render_views_cli.py -- \
 #         --out /tmp/views/crystal [--objects Crystal] [--engine BLENDER_EEVEE] \
 #         [--size 1024] [--samples 64] [--wireframe] [--focus X Y Z] [--zoom 3]
 #

@@ -6,13 +6,13 @@ official Blender Lab MCP server (https://www.blender.org/lab/mcp-server/).
 ## Blender and MCP in this repo
 
 - In cloud sessions, the SessionStart hook (`.claude/hooks/session-start.sh`)
-  installs Blender 5.2.2 LTS and the MCP add-on 1.0.3 (`scripts/setup-blender.sh`),
+  installs Blender 5.2.2 LTS and the MCP add-on 1.0.3 (`tools/blender/setup-blender.sh`),
   then starts a headless Blender that serves the add-on's socket on
-  127.0.0.1:9876 (`scripts/blender-mcp-server.sh`).
+  127.0.0.1:9876 (`tools/blender/blender-mcp-server.sh`).
 - `.mcp.json` registers the `blender` MCP server (official, pinned to the v1.0.3
   commit). Its tools appear as `mcp__blender__*`.
 - If a tool reports it cannot connect to Blender, run
-  `scripts/blender-mcp-server.sh start`. `status` checks it, the log is
+  `tools/blender/blender-mcp-server.sh start`. `status` checks it, the log is
   `/tmp/blender-mcp/blender.log`.
 - Blender has no GUI here: the screenshot and `jump_to_*` tools do not work.
   Model with `execute_blender_code`; inspect with the `get_*` summary tools
@@ -27,7 +27,7 @@ official Blender Lab MCP server (https://www.blender.org/lab/mcp-server/).
 - After a few idle minutes the cloud VM pauses: files stay, but Blender is
   stopped. So after every `execute_blender_code` call a PostToolUse hook saves
   a copy of the scene to `.blender-session/scene.blend` (gitignored, takes
-  about 0.1 s), and `scripts/blender-mcp-server.sh start` reopens it. The
+  about 0.1 s), and `tools/blender/blender-mcp-server.sh start` reopens it. The
   SessionStart hook output says when a snapshot was restored.
 - After a restore, `bpy.data.filepath` is the snapshot. If the scene came from
   another file, the hook output names it; save there explicitly.
@@ -48,18 +48,18 @@ official Blender Lab MCP server (https://www.blender.org/lab/mcp-server/).
   1. Snapshot the scene with `execute_blender_code`:
      `bpy.ops.wm.save_as_mainfile(filepath="/tmp/jobs/crystal.blend", copy=True)`
   2. Render with Bash and `run_in_background`, for example
-     `blender --background /tmp/jobs/crystal.blend --python scripts/render_views_cli.py -- --out /tmp/views/crystal --size 1024 --samples 64`
+     `blender --background /tmp/jobs/crystal.blend --python tools/blender/render_views_cli.py -- --out /tmp/views/crystal --size 1024 --samples 64`
      or a plain render with `blender --background /tmp/jobs/crystal.blend -o /tmp/renders/crystal_ -F PNG -f 1`.
   3. Wait for the background task's notification, then look at the images.
 
 ## Visual checks
 
 Look at the asset regularly while modelling, not only at the end.
-`scripts/render_views.py` renders an object from several angles into one
+`tools/blender/render_views.py` renders an object from several angles into one
 labelled contact sheet, then restores the scene:
 
 ```python
-path = "/home/user/nodeprismvr-assets/scripts/render_views.py"
+path = "/home/user/nodeprismvr-assets/tools/blender/render_views.py"
 exec(compile(open(path).read(), path, "exec"))
 result = render_views(["Crystal"], "/tmp/views/crystal", wireframe=True,
                       engine="BLENDER_WORKBENCH")
@@ -85,11 +85,11 @@ Then open `result["sheet"]` with the Read tool.
 FLUX.2 [klein] 9B (Black Forest Labs, 4-bit quantized) generates reference
 and inspiration images on the CPU, through stable-diffusion.cpp.
 
-- The SessionStart hook runs `scripts/setup-flux.sh` in the background: it
+- The SessionStart hook runs `tools/flux/setup-flux.sh` in the background: it
   builds `/opt/flux/bin/sd-cli` and downloads about 11 GB of weights to
   `/opt/flux/models` (log: `/tmp/flux-setup.log`). In a fresh VM that takes
   several minutes; Blender is usable meanwhile.
-- Generate with `scripts/flux.sh "prompt" /tmp/flux/name.png [sd-cli options]`,
+- Generate with `tools/flux/flux.sh "prompt" /tmp/flux/name.png [sd-cli options]`,
   e.g. `-s 42` for a fixed seed (default: random), `-b 4` for several
   variants, or `-r reference.png` to edit an image. Run it with Bash
   `run_in_background`, then look at the result with Read and send it to the
@@ -117,9 +117,9 @@ download, and that the NodePrism app will load by URL.
 - Publishing an asset:
   1. Build it in a scene that holds only this asset (the export also saves the
      whole scene as its source), and check it with "Visual checks".
-  2. Export with `scripts/library_export.py` through `execute_blender_code`:
+  2. Export with `tools/blender/library_export.py` through `execute_blender_code`:
      ```python
-     path = "/home/user/nodeprismvr-assets/scripts/library_export.py"
+     path = "/home/user/nodeprismvr-assets/tools/blender/library_export.py"
      exec(compile(open(path).read(), path, "exec"))
      result = export_asset("crystal-cluster", ["CrystalCluster"], name="Crystal Cluster",
                            description="...", tags=["crystal", "nature"])
@@ -127,8 +127,8 @@ download, and that the NodePrism app will load by URL.
      It writes the GLB, a 512 px preview with transparent background, the
      meta.json (triangles, vertices, dimensions in three.js axes, materials)
      and the .blend source. Look at the preview before going on.
-  3. Run `scripts/build_library_index.py`, then validate the GLB (see below).
-  4. Optionally preview the site: `scripts/build_site.sh`, then
+  3. Run `tools/library/build_library_index.py`, then validate the GLB (see below).
+  4. Optionally preview the site: `tools/library/build_site.sh`, then
      `python3 -m http.server -d _site` and load it in Chromium with Playwright.
   5. Commit and push to `main`; `.github/workflows/pages.yml` checks the index
      and deploys the site.
@@ -141,6 +141,17 @@ download, and that the NodePrism app will load by URL.
   them without asking.
 - `site/` is a static page (no build step) that reads `library/index.json` and
   shows the assets with a three.js viewer (three.js from jsDelivr, pinned).
+
+## Public repository
+
+- The repo is public, and the community may send assets as pull requests.
+  Everything pushed stays in the history forever: never commit secrets,
+  tokens or personal data, and check new binary files for embedded metadata
+  (`render_views` strips Blender's render stamps).
+- Review pull requests that touch `tools/`, `.claude/`, `.mcp.json` or
+  `.github/` with care: those run in our sessions and in CI.
+- Licences: assets in `library/` and `sources/` are CC0 1.0
+  (`LICENSE-ASSETS`, `library/library.json`); the rest is MIT (`LICENSE`).
 
 ## Asset defaults for three.js
 

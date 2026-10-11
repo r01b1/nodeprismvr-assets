@@ -1,8 +1,8 @@
 #!/bin/bash
 # Generate an image with FLUX.2 [klein] 9B on the CPU (installed by
-# scripts/setup-flux.sh). A random seed is used unless one is passed.
+# tools/flux/setup-flux.sh). A random seed is used unless one is passed.
 #
-# Usage: scripts/flux.sh "prompt" out.png [sd-cli options, e.g. -W 768 -H 768 -s 42 -r reference.png]
+# Usage: tools/flux/flux.sh "prompt" out.png [sd-cli options, e.g. -W 768 -H 768 -s 42 -r reference.png]
 set -euo pipefail
 
 FLUX_DIR="${FLUX_DIR:-/opt/flux}"
@@ -16,7 +16,7 @@ fi
 for f in "$SD_CLI" "$MODELS/flux-2-klein-9b-Q4_K_M.gguf" "$MODELS/Qwen3-8B-Q4_K_M.gguf" "$MODELS/flux2-vae.safetensors"; do
   if [ ! -e "$f" ]; then
     echo "FLUX is not installed yet ($f is missing). The SessionStart hook installs it" \
-      "in the background (log: /tmp/flux-setup.log); scripts/setup-flux.sh finishes it." >&2
+      "in the background (log: /tmp/flux-setup.log); tools/flux/setup-flux.sh finishes it." >&2
     exit 1
   fi
 done

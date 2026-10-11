@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/blender-mcp-server.sh save || exit 2"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/tools/blender/blender-mcp-server.sh save || exit 2"
           }
         ]
       }

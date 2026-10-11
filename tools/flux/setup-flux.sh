@@ -6,7 +6,7 @@
 # Licence: FLUX.2 [klein] 9B is under the FLUX Non-Commercial License, see
 # https://huggingface.co/black-forest-labs/FLUX.2-klein-9B.
 #
-# Usage: scripts/setup-flux.sh
+# Usage: tools/flux/setup-flux.sh
 set -euo pipefail
 
 SDCPP_COMMIT="2988060a4338a5dcd94721c964a8e87003c1ac8b"

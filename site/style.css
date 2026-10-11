@@ -171,8 +171,16 @@ dialog::backdrop { background: rgb(0 0 0 / 0.7); }
   font-size: 12px;
 }
 
+.foot {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px 32px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 @media (max-width: 800px) {
-  .top, .filters, main { padding-left: 16px; padding-right: 16px; }
+  .top, .filters, main, .foot { padding-left: 16px; padding-right: 16px; }
   dialog { width: 100vw; height: 100dvh; max-width: none; max-height: none; border-radius: 0; }
   .viewer { grid-template-columns: 1fr; grid-template-rows: 55% 45%; }
   .info { border-left: 0; border-top: 1px solid var(--border); }

@@ -3,8 +3,8 @@
 *.blend@
 __pycache__/
 
-# Snapshot of the live Blender scene (scripts/blender-mcp-server.sh)
+# Snapshot of the live Blender scene (tools/blender/blender-mcp-server.sh)
 .blender-session/
 
-# Assembled GitHub Pages site (scripts/build_site.sh)
+# Assembled GitHub Pages site (tools/library/build_site.sh)
 _site/

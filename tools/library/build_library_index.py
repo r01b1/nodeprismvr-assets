@@ -6,7 +6,7 @@ Build library/index.json, the catalogue of all assets, from library/library.json
 Paths in the index are relative to the index file, so it works from GitHub Pages
 and from raw.githubusercontent.com alike.
 
-Usage: scripts/build_library_index.py [--check]
+Usage: tools/library/build_library_index.py [--check]
   --check  exit 1 if library/index.json is not up to date (used by CI)
 """
 
@@ -14,7 +14,7 @@ import json
 import os
 import sys
 
-LIBRARY = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "library")
+LIBRARY = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "library")
 INDEX = os.path.join(LIBRARY, "index.json")
 
 
@@ -48,7 +48,7 @@ def main():
     if "--check" in sys.argv[1:]:
         with open(INDEX) as f:
             if f.read() != text:
-                sys.exit("library/index.json is out of date: run scripts/build_library_index.py")
+                sys.exit("library/index.json is out of date: run tools/library/build_library_index.py")
         print("library/index.json is up to date")
         return
     with open(INDEX, "w") as f:

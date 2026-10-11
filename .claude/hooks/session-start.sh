@@ -9,7 +9,7 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
 
-setsid nohup "$CLAUDE_PROJECT_DIR/scripts/setup-flux.sh" >/tmp/flux-setup.log 2>&1 </dev/null &
+setsid nohup "$CLAUDE_PROJECT_DIR/tools/flux/setup-flux.sh" >/tmp/flux-setup.log 2>&1 </dev/null &
 
-"$CLAUDE_PROJECT_DIR/scripts/setup-blender.sh"
-"$CLAUDE_PROJECT_DIR/scripts/blender-mcp-server.sh" start
+"$CLAUDE_PROJECT_DIR/tools/blender/setup-blender.sh"
+"$CLAUDE_PROJECT_DIR/tools/blender/blender-mcp-server.sh" start

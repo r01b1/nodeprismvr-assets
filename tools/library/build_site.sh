@@ -3,9 +3,9 @@
 # library, so assets are served under <site>/library/. Used by the Pages
 # workflow; run it locally to preview (python3 -m http.server -d _site).
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
-python3 scripts/build_library_index.py --check
+python3 tools/library/build_library_index.py --check
 rm -rf _site
 mkdir _site
 cp -r site/. _site/
