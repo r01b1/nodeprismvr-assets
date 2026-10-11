@@ -204,6 +204,8 @@ def render_views(
                  scene.view_settings.exposure, scene.view_settings.gamma),
         "hide_render": {ob.name: ob.hide_render for ob in scene.objects},
         "eevee_samples": scene.eevee.taa_render_samples,
+        # Metadata Blender writes into images (file path, date, camera, ...).
+        "stamp": {name: getattr(render, name) for name in dir(render) if name.startswith("use_stamp")},
     }
 
     temp = bpy.data.collections.new(_TEMP_PREFIX + "views")
@@ -246,6 +248,8 @@ def render_views(
         render.resolution_x = render.resolution_y = size
         render.resolution_percentage = 100
         render.film_transparent = transparent
+        for name in saved["stamp"]:
+            setattr(render, name, False)
         render.image_settings.file_format = "PNG"
         render.image_settings.color_mode = "RGBA"
         scene.view_settings.view_transform = "Standard"
@@ -280,6 +284,8 @@ def render_views(
         (scene.view_settings.view_transform, scene.view_settings.look,
          scene.view_settings.exposure, scene.view_settings.gamma) = saved["view"]
         scene.eevee.taa_render_samples = saved["eevee_samples"]
+        for name, value in saved["stamp"].items():
+            setattr(render, name, value)
         for name, hidden in saved["hide_render"].items():
             if name in scene.objects:
                 scene.objects[name].hide_render = hidden
