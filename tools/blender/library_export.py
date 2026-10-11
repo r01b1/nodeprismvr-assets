@@ -70,8 +70,15 @@ def _render_preview(objects, path):
     with tempfile.TemporaryDirectory() as tmp:
         result = namespace["render_views"](
             [ob.name for ob in objects if ob.type == "MESH"], tmp, size=512, samples=16,
-            transparent=True, zoom=1.3, file_format="WEBP", views=(("preview", -35, 20, False),))
+            transparent=True, file_format="WEBP", views=(("preview", -35, 20, False),))
         shutil.copyfile(result["views"][0], path)
+
+
+def render_preview(asset_id, objects):
+    """Render only library/<asset_id>/preview.webp again, e.g. after a tooling fix."""
+    path = os.path.join(_REPO, "library", asset_id, "preview.webp")
+    _render_preview(_with_children([bpy.data.objects[n] for n in objects]), path)
+    return {"preview": path}
 
 
 def export_asset(asset_id, objects, name, description="", tags=(), author="NodePrism"):
