@@ -21,8 +21,19 @@ official Blender Lab MCP server (https://www.blender.org/lab/mcp-server/).
   `render_thumbnail_to_path` and `render_viewport_to_path` write into
   Blender's temp dir, so use the `filepath` they return. To render to a chosen
   path, set `scene.render.filepath` and call `bpy.ops.render.render(write_still=True)`.
-- The headless scene only lives in memory. Save a `.blend` when the work
-  should survive a restart.
+
+## Keeping the scene
+
+- After a few idle minutes the cloud VM pauses: files stay, but Blender is
+  stopped. So after every `execute_blender_code` call a PostToolUse hook saves
+  a copy of the scene to `.blender-session/scene.blend` (gitignored, takes
+  about 0.1 s), and `scripts/blender-mcp-server.sh start` reopens it. The
+  SessionStart hook output says when a snapshot was restored.
+- After a restore, `bpy.data.filepath` is the snapshot. If the scene came from
+  another file, the hook output names it; save there explicitly.
+- A VM that stays paused long enough is reclaimed, and the snapshot is lost
+  with it. Save asset work as `assets/<name>/<name>.blend` and commit and push
+  it at milestones, e.g. when a modelling step is done.
 
 ## Time limits and long renders
 

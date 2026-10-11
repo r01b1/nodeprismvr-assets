@@ -2,3 +2,6 @@
 *.blend1
 *.blend@
 __pycache__/
+
+# Snapshot of the live Blender scene (scripts/blender-mcp-server.sh)
+.blender-session/
