@@ -15,13 +15,40 @@ official Blender Lab MCP server (https://www.blender.org/lab/mcp-server/).
   `scripts/blender-mcp-server.sh start`. `status` checks it, the log is
   `/tmp/blender-mcp/blender.log`.
 - Blender has no GUI here: the screenshot and `jump_to_*` tools do not work.
-  Model with `execute_blender_code`; inspect with the `get_*` summary tools.
+  Model with `execute_blender_code`; inspect with the `get_*` summary tools
+  and look at the asset with renders (see "Visual checks").
 - EEVEE, Cycles (CPU) and Workbench all render headless (Mesa llvmpipe).
   `render_thumbnail_to_path` and `render_viewport_to_path` write into
   Blender's temp dir, so use the `filepath` they return. To render to a chosen
   path, set `scene.render.filepath` and call `bpy.ops.render.render(write_still=True)`.
 - The headless scene only lives in memory. Save a `.blend` when the work
   should survive a restart.
+
+## Visual checks
+
+Look at the asset regularly while modelling, not only at the end.
+`scripts/render_views.py` renders an object from several angles into one
+labelled contact sheet, then restores the scene:
+
+```python
+path = "/home/user/nodeprismvr-assets/scripts/render_views.py"
+exec(compile(open(path).read(), path, "exec"))
+result = render_views(["Crystal"], "/tmp/views/crystal", wireframe=True,
+                      engine="BLENDER_WORKBENCH")
+```
+
+Then open `result["sheet"]` with the Read tool.
+
+- Default views: front, right, back, left, top, bottom (orthographic, for
+  proportions) and two perspective 3/4 views.
+- `engine="BLENDER_WORKBENCH"` with `wireframe=True` takes about 2 s for all
+  views. Use it after each modelling step to check shape and topology.
+- The default EEVEE engine takes about a minute and shows materials with
+  three.js-like colours (Standard view transform). Use it before exporting.
+- For details, pass `focus=(x, y, z)` and `zoom=3`, and optionally custom
+  `views=(("label", azimuth, elevation, orthographic), ...)`.
+- Write renders outside the repo (scratchpad or `/tmp`). Send the user a sheet
+  with SendUserFile when they should see progress.
 
 ## Asset defaults for three.js
 
