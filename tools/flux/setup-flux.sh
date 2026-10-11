@@ -21,13 +21,23 @@ MODEL_FILES=(
 
 log() { echo "[setup-flux] $*" >&2; }
 
+# Downloads resume where they stopped: a paused cloud VM kills this script,
+# and the next session start runs it again.
 fetch_model() {
   local repo="$1" rev="$2" path="$3" name="$4" sha="$5"
   local dest="$FLUX_DIR/models/$name"
+  local url="https://huggingface.co/$repo/resolve/$rev/$path"
   [ -f "$dest" ] && return 0
   log "Downloading $repo/$path"
-  curl -fsSL --retry 4 --retry-delay 2 -o "$dest.partial" "https://huggingface.co/$repo/resolve/$rev/$path"
-  echo "$sha  $dest.partial" | sha256sum --check --quiet
+  # A finished .partial makes the resumed request fail (nothing left to
+  # fetch), so the checksum decides whether the file is complete.
+  curl -fsSL --retry 4 --retry-delay 2 -C - -o "$dest.partial" "$url" || true
+  if ! echo "$sha  $dest.partial" | sha256sum --check --quiet >/dev/null 2>&1; then
+    log "Restarting the download of $name"
+    rm -f "$dest.partial"
+    curl -fsSL --retry 4 --retry-delay 2 -o "$dest.partial" "$url"
+    echo "$sha  $dest.partial" | sha256sum --check --quiet
+  fi
   mv "$dest.partial" "$dest"
 }
 
