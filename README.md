@@ -9,10 +9,10 @@ as glTF binary (`.glb`) for the three.js app.
 
 | File | Purpose |
 | --- | --- |
-| `.mcp.json` | Registers the `blender` MCP server (Blender Lab `blender_mcp` v1.0.3, run with `uvx`). |
+| `.mcp.json` | Registers the `blender` MCP server (Blender Lab `blender_mcp` v1.0.3, run with `uvx`), with a 10-minute tool timeout instead of the cloud environment's 60 s. |
 | `scripts/setup-blender.sh` | Installs Blender 5.2.2 LTS (Linux x64), the Blender Lab MCP add-on 1.0.3 and the EGL/Mesa libraries for headless rendering. Downloads are checked against pinned SHA-256 sums. |
 | `scripts/blender-mcp-server.sh` | `start` / `stop` / `restart` / `status` for a headless Blender that serves the add-on's socket on `127.0.0.1:9876`. |
-| `scripts/render_views.py` | Runs inside Blender: renders an object from 8 angles (optionally with a wireframe overlay or zoomed on a detail) into one labelled contact sheet for visual checks. |
+| `scripts/render_views.py` | Runs inside Blender: renders an object from 8 angles (optionally with a wireframe overlay or zoomed on a detail) into one labelled contact sheet for visual checks. `scripts/render_views_cli.py` runs the same on a saved `.blend` from the command line, for renders too long for an MCP call. |
 | `.claude/hooks/session-start.sh` | Claude Code cloud sessions only: runs both scripts when a session starts. |
 
 ```

@@ -24,6 +24,23 @@ official Blender Lab MCP server (https://www.blender.org/lab/mcp-server/).
 - The headless scene only lives in memory. Save a `.blend` when the work
   should survive a restart.
 
+## Time limits and long renders
+
+- The cloud environment sets `MCP_TOOL_TIMEOUT=60000` (60 s). `.mcp.json`
+  raises it for the `blender` server with `"timeout": 600000`; that takes
+  effect when a session starts.
+- The official MCP server itself stops waiting for Blender after 300 s per
+  call. The headless Blender also handles one call at a time and is blocked
+  until the call finishes.
+- Run anything that may take longer than a few minutes (final renders, high
+  resolutions or samples, Cycles) in its own Blender process instead:
+  1. Snapshot the scene with `execute_blender_code`:
+     `bpy.ops.wm.save_as_mainfile(filepath="/tmp/jobs/crystal.blend", copy=True)`
+  2. Render with Bash and `run_in_background`, for example
+     `blender --background /tmp/jobs/crystal.blend --python scripts/render_views_cli.py -- --out /tmp/views/crystal --size 1024 --samples 64`
+     or a plain render with `blender --background /tmp/jobs/crystal.blend -o /tmp/renders/crystal_ -F PNG -f 1`.
+  3. Wait for the background task's notification, then look at the images.
+
 ## Visual checks
 
 Look at the asset regularly while modelling, not only at the end.
@@ -43,8 +60,10 @@ Then open `result["sheet"]` with the Read tool.
   proportions) and two perspective 3/4 views.
 - `engine="BLENDER_WORKBENCH"` with `wireframe=True` takes about 2 s for all
   views. Use it after each modelling step to check shape and topology.
-- The default EEVEE engine takes about a minute and shows materials with
-  three.js-like colours (Standard view transform). Use it before exporting.
+- The default EEVEE engine (`samples=4`) takes about 25 s for all views at
+  `size=384` and shows materials with three.js-like colours (Standard view
+  transform). Use it before exporting. More samples or larger sizes take
+  proportionally longer; see "Time limits and long renders".
 - For details, pass `focus=(x, y, z)` and `zoom=3`, and optionally custom
   `views=(("label", azimuth, elevation, orthographic), ...)`.
 - Write renders outside the repo (scratchpad or `/tmp`). Send the user a sheet

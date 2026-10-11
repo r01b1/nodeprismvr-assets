@@ -165,6 +165,7 @@ def render_views(
     focus=None,
     zoom=1.0,
     engine="BLENDER_EEVEE",
+    samples=4,
 ):
     """
     Render *objects* (names; default: all visible meshes) from several angles.
@@ -173,6 +174,7 @@ def render_views(
     looks at the front (camera on -Y), 90 at the right side. *wireframe*
     overlays the evaluated topology in orange. *focus* (a world-space point)
     and *zoom* (>1 moves closer) frame details instead of the whole object.
+    *samples* sets the EEVEE render samples (4 is plenty for checks).
     Colours use the "Standard" view transform, like three.js without tone
     mapping. Returns the paths of the single views and of a contact sheet.
     """
@@ -248,7 +250,7 @@ def render_views(
         scene.view_settings.look = "None"
         scene.view_settings.exposure = 0.0
         scene.view_settings.gamma = 1.0
-        scene.eevee.taa_render_samples = 16
+        scene.eevee.taa_render_samples = samples
 
         view_corners = corners
         if focus:
