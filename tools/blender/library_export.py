@@ -7,14 +7,15 @@
 #                           description="...", tags=["crystal", "nature"])
 #
 # Writes library/<id>/<id>.glb, library/<id>/preview.webp and
-# library/<id>/meta.json, and saves the scene as sources/<id>/<id>.blend.
-# Afterwards run tools/library/build_library_index.py to update library/index.json.
+# library/<id>/meta.json (name, description, tags, author), and saves the
+# scene as sources/<id>/<id>.blend. Statistics for the catalogue are read from
+# the GLB when the site is built (tools/library/build_library_index.py).
 
-import datetime
 import inspect
 import json
 import os
 import re
+import shutil
 import tempfile
 
 import bpy
@@ -69,13 +70,8 @@ def _render_preview(objects, path):
     with tempfile.TemporaryDirectory() as tmp:
         result = namespace["render_views"](
             [ob.name for ob in objects if ob.type == "MESH"], tmp, size=512, samples=16,
-            transparent=True, zoom=1.3, views=(("preview", -35, 20, False),))
-        img = bpy.data.images.load(result["views"][0], check_existing=False)
-        try:
-            img.file_format = "WEBP"
-            img.save(filepath=path, quality=90)
-        finally:
-            bpy.data.images.remove(img)
+            transparent=True, zoom=1.3, file_format="WEBP", views=(("preview", -35, 20, False),))
+        shutil.copyfile(result["views"][0], path)
 
 
 def export_asset(asset_id, objects, name, description="", tags=(), author="NodePrism"):
@@ -113,18 +109,8 @@ def export_asset(asset_id, objects, name, description="", tags=(), author="NodeP
         "description": description,
         "tags": sorted(set(tags)),
         "author": author,
-        "created": datetime.date.today().isoformat(),
-        "file": asset_id + ".glb",
-        "preview": "preview.webp",
-        "source": "sources/{0}/{0}.blend".format(asset_id),
-        "generator": "Blender " + bpy.app.version_string,
-        **stats,
     }
     meta_path = os.path.join(asset_dir, "meta.json")
-    if os.path.exists(meta_path):
-        # Keep the original creation date when re-exporting.
-        with open(meta_path) as f:
-            meta["created"] = json.load(f).get("created", meta["created"])
     with open(meta_path, "w") as f:
         json.dump(meta, f, indent=2)
         f.write("\n")

@@ -25,6 +25,7 @@
     </div>
     <nav class="links">
       <a href="library/index.json">index.json</a>
+      <a href="review.html">Review</a>
       <a id="repo-link" href="https://github.com/r01b1/nodeprismvr-assets">GitHub</a>
     </nav>
   </header>
@@ -39,35 +40,6 @@
     <ul id="grid" class="grid"></ul>
   </main>
 
-  <dialog id="viewer" aria-labelledby="viewer-title">
-    <div class="viewer">
-      <div class="stage">
-        <canvas id="canvas"></canvas>
-        <p id="viewer-status" class="viewer-status">Loading model…</p>
-        <div class="toolbar">
-          <button id="btn-wire" type="button" aria-pressed="false">Wireframe</button>
-          <button id="btn-rotate" type="button" aria-pressed="true">Auto-rotate</button>
-          <button id="btn-reset" type="button">Reset view</button>
-        </div>
-      </div>
-      <aside class="info">
-        <button id="btn-close" class="close" type="button" aria-label="Close">✕</button>
-        <h2 id="viewer-title"></h2>
-        <p id="viewer-description"></p>
-        <dl id="viewer-stats" class="stats"></dl>
-        <div id="viewer-tags" class="tags small"></div>
-        <div class="actions">
-          <a id="btn-download" class="button primary" download>Download .glb</a>
-          <button id="btn-copy" class="button" type="button">Copy URL</button>
-          <a id="btn-source" class="button" target="_blank" rel="noopener">Blender source</a>
-        </div>
-        <details class="code">
-          <summary>Use in three.js</summary>
-          <pre><code id="viewer-code"></code></pre>
-        </details>
-      </aside>
-    </div>
-  </dialog>
 
   <footer class="foot">
     Assets: <span id="footer-license">CC0-1.0</span> (public domain) ·

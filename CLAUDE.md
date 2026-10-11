@@ -112,35 +112,51 @@ download, and that the NodePrism app will load by URL.
 
 - Layout: `library/<id>/<id>.glb`, `library/<id>/preview.webp` and
   `library/<id>/meta.json`; Blender sources in `sources/<id>/<id>.blend`;
-  library-wide fields in `library/library.json`. `library/index.json` is the
-  generated catalogue that apps read. Asset ids are lowercase kebab-case.
-- Publishing an asset:
+  library-wide fields in `library/library.json`. Asset ids are lowercase
+  kebab-case.
+- `meta.json` holds only `id`, `name`, `description`, `tags`, `author`.
+  `tools/library/build_library_index.py` reads triangles, vertices, size and
+  materials from the GLB (`tools/library/glb_stats.py`) and the date added
+  from git, and writes the catalogue `index.json` when the site is built. The
+  catalogue is not committed, so submissions never conflict over it.
+- Publishing an asset ourselves:
   1. Build it in a scene that holds only this asset (the export also saves the
      whole scene as its source), and check it with "Visual checks".
   2. Export with `tools/blender/library_export.py` through `execute_blender_code`:
      ```python
      path = "/home/user/nodeprismvr-assets/tools/blender/library_export.py"
-     exec(compile(open(path).read(), path, "exec"))
-     result = export_asset("crystal-cluster", ["CrystalCluster"], name="Crystal Cluster",
-                           description="...", tags=["crystal", "nature"])
+     ns = {}
+     exec(compile(open(path).read(), path, "exec"), ns)
+     result = ns["export_asset"]("crystal-cluster", ["CrystalCluster"], name="Crystal Cluster",
+                                 description="...", tags=["crystal", "nature"])
      ```
-     It writes the GLB, a 512 px preview with transparent background, the
-     meta.json (triangles, vertices, dimensions in three.js axes, materials)
-     and the .blend source. Look at the preview before going on.
-  3. Run `tools/library/build_library_index.py`, then validate the GLB (see below).
+     It writes the GLB, a 512 px WebP preview with transparent background, the
+     meta.json and the .blend source. Look at the preview before going on.
+  3. Validate: `node tools/library/validate_glb.mjs library/<id>/<id>.glb`
+     (run `npm ci --prefix tools/library` once), and three.js
+     `GLTFLoader.parseAsync` in Node.
   4. Optionally preview the site: `tools/library/build_site.sh`, then
      `python3 -m http.server -d _site` and load it in Chromium with Playwright.
-  5. Commit and push to `main`; `.github/workflows/pages.yml` checks the index
-     and deploys the site.
-- Public URLs (once the repo is public and Pages uses GitHub Actions):
-  gallery `https://r01b1.github.io/nodeprismvr-assets/`, catalogue
-  `.../library/index.json`, files `.../library/<id>/<id>.glb`; also
-  `https://raw.githubusercontent.com/r01b1/nodeprismvr-assets/main/library/...`.
-  Both allow cross-origin loading.
+  5. Commit and push to `main`; `.github/workflows/pages.yml` builds the
+     catalogue and deploys the site.
+- Community submissions are pull requests. `.github/workflows/check-submission.yml`
+  runs `tools/library/check_submission.py` from the base branch against the
+  pull request: only `library/<id>/` and `sources/<id>/` may change, files and
+  meta.json must be complete, the glTF-Validator must pass, and budgets
+  (100k triangles / 10 MB hard, 20k / 2 MB warning), self-containment and
+  placement on y = 0 are checked. The admin looks at the asset in 3D on
+  `site/review.html` (open submissions, loaded straight from the pull request)
+  and approves by merging or rejects by closing on GitHub.
+- Public URLs: gallery `https://r01b1.github.io/nodeprismvr-assets/`, review
+  page `.../review.html`, catalogue `.../library/index.json`, files
+  `.../library/<id>/<id>.glb`. Files are also on
+  `https://raw.githubusercontent.com/r01b1/nodeprismvr-assets/main/library/...`
+  (not the catalogue, which is built at deploy). All allow cross-origin loading.
 - Apps may reference published ids and file names: do not rename or delete
   them without asking.
-- `site/` is a static page (no build step) that reads `library/index.json` and
-  shows the assets with a three.js viewer (three.js from jsDelivr, pinned).
+- `site/` is static (no build step): `viewer.js` is the shared three.js viewer
+  (three.js from jsDelivr, pinned), `app.js` the gallery, `review.js` the
+  review page (public GitHub API, 60 anonymous requests per hour).
 
 ## Public repository
 

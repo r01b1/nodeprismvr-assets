@@ -35,27 +35,34 @@ Blender sources are in `sources/`.
 
 | Path | Contents |
 | --- | --- |
-| `library/` | The published assets: `<id>/<id>.glb`, `<id>/preview.webp`, `<id>/meta.json`, and `index.json` (generated catalogue) |
+| `library/` | The published assets: `<id>/<id>.glb`, `<id>/preview.webp`, `<id>/meta.json`, and `library.json` (library-wide fields) |
 | `sources/` | Blender source file of each asset |
-| `site/` | The gallery website |
+| `site/` | The gallery website and the review page |
 | `tools/` | Tooling to build and publish assets (Blender, FLUX, library) |
 | `.claude/`, `.mcp.json`, `CLAUDE.md` | Configuration for building assets with Claude Code |
 
 ## Contributing assets
 
-Pull requests with new assets are welcome. An asset needs:
+Assets are submitted as pull requests and reviewed before they enter the
+library. A submission adds one folder per asset and changes nothing else:
 
-- `library/<id>/<id>.glb`: glTF 2.0 binary, +Y up, 1 unit = 1 metre, origin
-  where the object stands, Principled BSDF materials only, small polygon and
-  texture budgets (it is a VR app).
-- `library/<id>/preview.webp` (512x512, transparent background) and
-  `library/<id>/meta.json`, plus the Blender file as `sources/<id>/<id>.blend`.
-  Asset ids are lowercase kebab-case.
-- `tools/blender/library_export.py`, run inside Blender, writes all of these
-  files; then run `tools/library/build_library_index.py` to update
-  `library/index.json`.
+```
+library/<id>/<id>.glb       glTF 2.0 binary, +Y up, 1 unit = 1 metre, standing on y = 0,
+                            Principled BSDF materials, self-contained, ideally < 20k triangles
+library/<id>/preview.webp   512 x 512, transparent background
+library/<id>/meta.json      {"id", "name", "description", "tags", "author"}
+sources/<id>/<id>.blend     the Blender source
+```
 
-By contributing an asset you dedicate it to the public domain under CC0 1.0.
+Asset ids and tags are lowercase kebab-case. Triangle counts, sizes and
+materials are read from the GLB automatically. `tools/blender/library_export.py`,
+run inside Blender, writes all of these files.
+
+Every submission is checked automatically (files, glTF-Validator, budgets).
+The maintainer then looks at it in 3D on the
+[review page](https://r01b1.github.io/nodeprismvr-assets/review.html) and
+approves it by merging the pull request. By contributing an asset you dedicate
+it to the public domain under CC0 1.0.
 
 ## Tooling: how assets are made
 
@@ -66,8 +73,9 @@ By contributing an asset you dedicate it to the public domain under CC0 1.0.
 | `tools/blender/blender-mcp-server.sh` | `start` / `stop` / `restart` / `status` / `save` for a headless Blender that serves the add-on's socket on `127.0.0.1:9876`. `save` snapshots the scene to `.blender-session/scene.blend`, `start` reopens that snapshot. |
 | `tools/blender/render_views.py` | Runs inside Blender: renders an object from 8 angles (optionally with a wireframe overlay or zoomed on a detail) into one labelled contact sheet for visual checks. `tools/blender/render_views_cli.py` runs the same on a saved `.blend` from the command line, for renders too long for an MCP call. |
 | `tools/flux/setup-flux.sh`, `tools/flux/flux.sh` | FLUX.2 [klein] 9B (4-bit, via stable-diffusion.cpp on the CPU) for inspiration images. The setup builds `sd-cli` and downloads about 11 GB of weights (pinned revisions and SHA-256 sums) to `/opt/flux`; `flux.sh "prompt" out.png` generates a 512x512 image in about 11 minutes. FLUX Non-Commercial License. |
-| `tools/blender/library_export.py`, `tools/library/build_library_index.py` | Export an asset from Blender into `library/` (GLB, preview, metadata, .blend source) and rebuild `library/index.json`. |
-| `site/`, `tools/library/build_site.sh`, `.github/workflows/pages.yml` | The gallery website; the workflow assembles it with the library and deploys it to GitHub Pages on every push to `main`. |
+| `tools/blender/library_export.py` | Export an asset from Blender into `library/` and `sources/` (GLB, WebP preview, meta.json, .blend source). |
+| `tools/library/` | `build_library_index.py` builds the catalogue from meta.json and the GLBs (`glb_stats.py`); `check_submission.py` and `validate_glb.mjs` check pull requests (`.github/workflows/check-submission.yml`). |
+| `site/`, `tools/library/build_site.sh`, `.github/workflows/pages.yml` | The gallery and review pages; the workflow assembles them with the library and the catalogue and deploys them to GitHub Pages on every push to `main`. |
 | `.claude/hooks/session-start.sh` | Claude Code cloud sessions only: runs the Blender scripts when a session starts and the FLUX setup in the background. |
 | `.claude/settings.json` | Registers that hook, plus a PostToolUse hook that snapshots the scene after every `execute_blender_code`, so a paused cloud VM does not lose it. |
 

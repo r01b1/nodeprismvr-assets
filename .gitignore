@@ -8,3 +8,9 @@ __pycache__/
 
 # Assembled GitHub Pages site (tools/library/build_site.sh)
 _site/
+
+# Generated catalogue (tools/library/build_library_index.py)
+library/index.json
+
+# Node modules of the library tools
+tools/library/node_modules/

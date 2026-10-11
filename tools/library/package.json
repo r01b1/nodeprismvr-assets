@@ -1,0 +1,9 @@
+{
+  "name": "nodeprism-library-tools",
+  "private": true,
+  "description": "Node dependencies of the library tools (glTF validation).",
+  "license": "MIT",
+  "dependencies": {
+    "gltf-validator": "2.0.0-dev.3.10"
+  }
+}

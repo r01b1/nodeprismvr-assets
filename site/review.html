@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asset Review · NodePrism</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 26 12 16 30 6 12Z' fill='%234d8dff'/%3E%3Cpath d='M16 2 26 12H6Z' fill='%23a9c8ff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="review.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Asset Review</h1>
+      <p>Submitted assets waiting for review. Look at each one in 3D, then
+        approve it by merging its pull request on GitHub, or reject it by closing it.</p>
+    </div>
+    <nav class="links">
+      <a href="./">Library</a>
+      <a id="pulls-link" href="https://github.com/r01b1/nodeprismvr-assets/pulls">Pull requests</a>
+    </nav>
+  </header>
+
+  <main>
+    <p id="status" class="status">Loading submissions…</p>
+    <ul id="grid" class="grid"></ul>
+  </main>
+</body>
+</html>

@@ -5,9 +5,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-python3 tools/library/build_library_index.py --check
 rm -rf _site
 mkdir _site
 cp -r site/. _site/
 cp -r library _site/library
+python3 tools/library/build_library_index.py --out _site/library/index.json
 echo "Built _site/ with $(find _site/library -name '*.glb' | wc -l) assets"

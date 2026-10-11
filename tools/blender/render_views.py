@@ -167,6 +167,7 @@ def render_views(
     engine="BLENDER_EEVEE",
     samples=4,
     transparent=False,
+    file_format="PNG",
 ):
     """
     Render *objects* (names; default: all visible meshes) from several angles.
@@ -177,6 +178,7 @@ def render_views(
     and *zoom* (>1 moves closer) frame details instead of the whole object.
     *samples* sets the EEVEE render samples (4 is plenty for checks).
     *transparent* renders without background (alpha) instead of grey.
+    *file_format* of the single views: "PNG" or "WEBP" (quality 90).
     Colours use the "Standard" view transform, like three.js without tone
     mapping. Returns the paths of the single views and of a contact sheet.
     """
@@ -199,7 +201,8 @@ def render_views(
         "res": (render.resolution_x, render.resolution_y, render.resolution_percentage),
         "filepath": render.filepath,
         "transparent": render.film_transparent,
-        "format": (render.image_settings.file_format, render.image_settings.color_mode),
+        "format": (render.image_settings.file_format, render.image_settings.color_mode,
+                   render.image_settings.quality),
         "view": (scene.view_settings.view_transform, scene.view_settings.look,
                  scene.view_settings.exposure, scene.view_settings.gamma),
         "hide_render": {ob.name: ob.hide_render for ob in scene.objects},
@@ -250,8 +253,9 @@ def render_views(
         render.film_transparent = transparent
         for name in saved["stamp"]:
             setattr(render, name, False)
-        render.image_settings.file_format = "PNG"
+        render.image_settings.file_format = file_format
         render.image_settings.color_mode = "RGBA"
+        render.image_settings.quality = 90
         scene.view_settings.view_transform = "Standard"
         scene.view_settings.look = "None"
         scene.view_settings.exposure = 0.0
@@ -266,7 +270,7 @@ def render_views(
 
         for label, azimuth, elevation, ortho in views:
             _frame_camera(cam, view_corners, center, _view_rotation(azimuth, elevation), ortho, zoom)
-            path = os.path.join(out_dir, label.replace("/", "-").replace(" ", "_") + ".png")
+            path = os.path.join(out_dir, label.replace("/", "-").replace(" ", "_") + "." + file_format.lower())
             render.filepath = path
             bpy.ops.render.render(write_still=True)
             paths.append(path)
@@ -280,7 +284,8 @@ def render_views(
         render.resolution_x, render.resolution_y, render.resolution_percentage = saved["res"]
         render.filepath = saved["filepath"]
         render.film_transparent = saved["transparent"]
-        render.image_settings.file_format, render.image_settings.color_mode = saved["format"]
+        (render.image_settings.file_format, render.image_settings.color_mode,
+         render.image_settings.quality) = saved["format"]
         (scene.view_settings.view_transform, scene.view_settings.look,
          scene.view_settings.exposure, scene.view_settings.gamma) = saved["view"]
         scene.eevee.taa_render_samples = saved["eevee_samples"]

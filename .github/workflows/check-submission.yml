@@ -1,0 +1,47 @@
+# Check asset submissions (pull requests that change library/ or sources/).
+# The check runs the tools from the base branch, so a pull request cannot
+# change how it is checked, and it gets no secrets or write access.
+name: Check asset submission
+
+on:
+  pull_request:
+    paths:
+      - "library/**"
+      - "sources/**"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check asset submission
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tools from the base branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+      - name: Check out the submission
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch the base commit for the diff
+        run: git -C pr fetch --no-tags --quiet origin ${{ github.event.pull_request.base.sha }}
+      - name: Install the glTF validator
+        run: npm ci --prefix base/tools/library --no-audit --no-fund
+      - name: Check
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: >
+          python3 base/tools/library/check_submission.py
+          --repo pr --base "$BASE_SHA" --head "$HEAD_SHA"
+          --pr "$PR_NUMBER" --head-repo "$HEAD_REPO"
+          --review-url https://r01b1.github.io/nodeprismvr-assets/review.html
