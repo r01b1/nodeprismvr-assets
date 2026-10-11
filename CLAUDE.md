@@ -158,6 +158,21 @@ download, and that the NodePrism app will load by URL.
   (three.js from jsDelivr, pinned), `app.js` the gallery, `review.js` the
   review page (public GitHub API, 60 anonymous requests per hour).
 
+## Sessions and roles
+
+Work is split between two cloud sessions:
+
+- **Leitung** (supervisor): maintains the tooling (`tools/`, `site/`,
+  `.claude/`, `.github/`, `.mcp.json`, docs), assigns asset tasks to the
+  workshop and checks its results.
+- **Werkstatt** (workshop): builds assets. It changes only `library/<id>/`
+  and `sources/<id>/`, submits each asset as a pull request from a branch
+  `claude/asset-<id>`, never merges itself, and reports tooling problems to
+  the Leitung instead of fixing them.
+
+The user approves assets by merging their pull requests after looking at them
+on the review page.
+
 ## Public repository
 
 - The repo is public, and the community may send assets as pull requests.
