@@ -1,0 +1,4 @@
+# Blender backup and temporary save files
+*.blend1
+*.blend@
+__pycache__/
