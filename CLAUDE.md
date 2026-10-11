@@ -132,6 +132,8 @@ download, and that the NodePrism app will load by URL.
      ```
      It writes the GLB, a 512 px WebP preview with transparent background, the
      meta.json and the .blend source. Look at the preview before going on.
+     `ns["render_preview"](asset_id, objects)` renders only the preview again,
+     e.g. after a change to the preview tooling.
   3. Validate: `node tools/library/validate_glb.mjs library/<id>/<id>.glb`
      (run `npm ci --prefix tools/library` once), and three.js
      `GLTFLoader.parseAsync` in Node.
