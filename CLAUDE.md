@@ -154,6 +154,10 @@ download, and that the NodePrism app will load by URL.
   (not the catalogue, which is built at deploy). All allow cross-origin loading.
 - Apps may reference published ids and file names: do not rename or delete
   them without asking.
+- Test site changes in Chromium and in WebKit (the Safari engine; the user
+  browses with Safari), at desktop and phone sizes. Playwright's WebKit is not
+  preinstalled: `PLAYWRIGHT_BROWSERS_PATH=<dir> npx playwright install webkit`,
+  then `npx playwright install-deps webkit`.
 - `site/` is static (no build step): `viewer.js` is the shared three.js viewer
   (three.js from jsDelivr, pinned), `app.js` the gallery, `review.js` the
   review page (public GitHub API, 60 anonymous requests per hour).
