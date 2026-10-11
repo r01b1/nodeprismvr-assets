@@ -106,7 +106,9 @@ function show(asset) {
 $("search").addEventListener("input", renderGrid);
 
 try {
-  const response = await fetch(new URL("index.json", libraryUrl));
+  // Pages lets browsers keep files for 10 minutes; revalidate the catalogue
+  // so newly merged assets show up at once (an unchanged one costs a 304).
+  const response = await fetch(new URL("index.json", libraryUrl), { cache: "no-cache" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   library = await response.json();
   if (library.description) $("library-description").textContent = library.description;
