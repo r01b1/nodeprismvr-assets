@@ -26,7 +26,12 @@ from glb_stats import glb_stats  # noqa: E402
 # Budgets for a VR app; warnings ask the reviewer to look closer.
 MAX_TRIANGLES, WARN_TRIANGLES = 100_000, 20_000
 MAX_BYTES, WARN_BYTES = 10 * 1024 * 1024, 2 * 1024 * 1024
-DECODER_EXTENSIONS = {"KHR_draco_mesh_compression", "EXT_meshopt_compression", "KHR_texture_basisu"}
+# Extensions an app can only load with an extra decoder, and that decoder in three.js.
+DECODER_EXTENSIONS = {
+    "EXT_meshopt_compression": "MeshoptDecoder (GLTFLoader.setMeshoptDecoder)",
+    "KHR_draco_mesh_compression": "DRACOLoader (GLTFLoader.setDRACOLoader)",
+    "KHR_texture_basisu": "KTX2Loader (GLTFLoader.setKTX2Loader)",
+}
 ASSET_FILES = {"{id}.glb", "preview.webp", "meta.json"}
 
 
@@ -119,8 +124,8 @@ def check_asset(repo, asset_id):
                 stats["bytes"] / 2**20, MAX_BYTES / 2**20))
         elif stats["bytes"] > WARN_BYTES:
             warnings.append("The GLB is {:.1f} MB, large for VR.".format(stats["bytes"] / 2**20))
-        for ext in sorted(DECODER_EXTENSIONS & set(stats["extensions"])):
-            warnings.append("Uses {}, which needs an extra decoder in the app.".format(ext))
+        for ext in sorted(DECODER_EXTENSIONS.keys() & set(stats["extensions"])):
+            warnings.append("Uses {}: apps need three.js's {} to load it.".format(ext, DECODER_EXTENSIONS[ext]))
         low_y = stats["bounds"]["min"][1]
         if abs(low_y) > 0.01:
             warnings.append("The lowest point is at y = {:.3f} m; assets should stand on y = 0.".format(low_y))

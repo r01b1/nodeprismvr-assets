@@ -134,12 +134,15 @@ download, and that the NodePrism app will load by URL.
      meta.json and the .blend source. Look at the preview before going on.
      `ns["render_preview"](asset_id, objects)` renders only the preview again,
      e.g. after a change to the preview tooling.
-  3. Validate: `node tools/library/validate_glb.mjs library/<id>/<id>.glb`
+  3. Compress dense meshes (see "Asset defaults for three.js"):
+     `node tools/gltf/optimize_glb.mjs library/<id>/<id>.glb library/<id>/<id>.glb --mode quantize`
+     (run `npm ci --prefix tools/gltf` once).
+  4. Validate: `node tools/library/validate_glb.mjs library/<id>/<id>.glb`
      (run `npm ci --prefix tools/library` once), and three.js
-     `GLTFLoader.parseAsync` in Node.
-  4. Optionally preview the site: `tools/library/build_site.sh`, then
+     `GLTFLoader.parseAsync` in Node (with `setMeshoptDecoder` for meshopt).
+  5. Optionally preview the site: `tools/library/build_site.sh`, then
      `python3 -m http.server -d _site` and load it in Chromium with Playwright.
-  5. Commit and push to `main`; `.github/workflows/pages.yml` builds the
+  6. Commit and push to `main`; `.github/workflows/pages.yml` builds the
      catalogue and deploys the site.
 - Community submissions are pull requests. `.github/workflows/check-submission.yml`
   runs `tools/library/check_submission.py` from the base branch against the
@@ -202,5 +205,19 @@ Adjust these when the app needs something else.
   `MeshPhysicalMaterial`. Name objects, meshes and materials meaningfully,
   because three.js sees those names.
 - It is a VR app, so keep polygon and texture budgets small.
+- Without textures, detail comes from geometry, vertex colours (`COLOR_0`,
+  e.g. colour variation plus baked ambient occlusion) and per-material
+  factors (roughness and metallic exist only per material). Blender exports
+  `COLOR_0` only when the material uses the Color Attribute, and three.js
+  multiplies it into every material of the mesh: give faces of other
+  materials white vertex colours (face-corner domain).
+- Compression with `tools/gltf/optimize_glb.mjs`: `--mode quantize`
+  (`KHR_mesh_quantization`) needs no decoder in the app; `--mode meshopt`
+  (`EXT_meshopt_compression`) is a few times smaller but apps must call
+  `GLTFLoader.setMeshoptDecoder(MeshoptDecoder)` (the site's viewer does).
+  Measured on a noisy rock with vertex colours: about 6,500 triangles fit in
+  100 KB quantized, about 17,000 with meshopt. The check warns about meshopt
+  so the reviewer notices.
+- Style lines (shared materials, motifs, budgets) are in `docs/styles.md`.
 - After exporting, check that the file loads: run the Khronos glTF-Validator
   (npm `gltf-validator`) and three.js `GLTFLoader.parseAsync` in Node.

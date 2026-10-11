@@ -4,6 +4,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 const TEMPLATE = `
@@ -36,6 +37,8 @@ let ui = null;
 let renderer, scene, camera, controls, model, grid;
 let wireframe = false;
 let loadToken = 0;
+// Library assets may be compressed with EXT_meshopt_compression.
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 
 export function formatBytes(bytes) {
   return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(2)} MB`;
@@ -145,6 +148,17 @@ function measure(root, bytes) {
   ];
 }
 
+function codeSnippet(url, meshopt) {
+  if (!meshopt) {
+    return `import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";\n\n` +
+      `new GLTFLoader().load(\n  "${url}",\n  (gltf) => scene.add(gltf.scene),\n);`;
+  }
+  return `import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";\n` +
+    `import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";\n\n` +
+    `// This asset is compressed with EXT_meshopt_compression.\n` +
+    `new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(\n  "${url}",\n  (gltf) => scene.add(gltf.scene),\n);`;
+}
+
 function renderStats(rows) {
   ui.stats.replaceChildren(...rows.flatMap(([key, value]) => [
     element("dt", { textContent: key }),
@@ -181,9 +195,7 @@ export async function openViewer(entry) {
   });
   ui.actions.append(copy);
   ui.code.hidden = !entry.showCode;
-  ui.codeText.textContent =
-    `import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";\n\n` +
-    `new GLTFLoader().load(\n  "${entry.glbUrl}",\n  (gltf) => scene.add(gltf.scene),\n);`;
+  ui.codeText.textContent = codeSnippet(entry.glbUrl, false);
 
   if (!ui.dialog.open) ui.dialog.showModal();
   resize();
@@ -199,8 +211,10 @@ export async function openViewer(entry) {
     const response = await fetch(entry.glbUrl);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const buffer = await response.arrayBuffer();
-    const gltf = await new GLTFLoader().parseAsync(buffer, entry.glbUrl.replace(/[^/]*$/, ""));
+    const gltf = await loader.parseAsync(buffer, entry.glbUrl.replace(/[^/]*$/, ""));
     if (token !== loadToken) return;  // another asset was opened meanwhile
+    const extensions = gltf.parser.json.extensionsUsed || [];
+    ui.codeText.textContent = codeSnippet(entry.glbUrl, extensions.includes("EXT_meshopt_compression"));
     model = gltf.scene;
     scene.add(model);
     const box = new THREE.Box3().setFromObject(model);
