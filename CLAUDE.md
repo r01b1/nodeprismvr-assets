@@ -90,10 +90,15 @@ and inspiration images on the CPU, through stable-diffusion.cpp.
   `/opt/flux/models` (log: `/tmp/flux-setup.log`). In a fresh VM that takes
   several minutes; Blender is usable meanwhile.
 - Generate with `scripts/flux.sh "prompt" /tmp/flux/name.png [sd-cli options]`,
-  e.g. `-W 768 -H 768`, `-s 42` for a fixed seed (default: random),
-  `-b 4` for several variants, or `-r reference.png` to edit an image.
-  Run it with Bash `run_in_background`, then look at the result with Read and
-  send it to the user with SendUserFile.
+  e.g. `-s 42` for a fixed seed (default: random), `-b 4` for several
+  variants, or `-r reference.png` to edit an image. Run it with Bash
+  `run_in_background`, then look at the result with Read and send it to the
+  user with SendUserFile.
+- It is slow on this CPU-only VM: a 512x512 image (the default) takes about
+  11 minutes (4 steps at about 2.5 minutes each, plus 30 s text encoding and
+  20 s decoding), and peaks at about 11 GB RAM. Larger sizes scale with the
+  pixel count (1024x1024 would take well over half an hour). Blender stays
+  usable meanwhile, but renders are slower while FLUX runs.
 - Licence: FLUX Non-Commercial License. Fine for this free, open asset
   library; the generated images may be used freely. If the project ever turns
   commercial, switch to FLUX.2 [klein] 4B (Apache 2.0).

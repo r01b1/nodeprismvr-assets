@@ -29,6 +29,6 @@ exec "$SD_CLI" \
   --diffusion-model "$MODELS/flux-2-klein-9b-Q4_K_M.gguf" \
   --llm "$MODELS/Qwen3-8B-Q4_K_M.gguf" \
   --vae "$MODELS/flux2-vae.safetensors" \
-  --cfg-scale 1.0 --steps 4 -W 1024 -H 1024 -s -1 \
+  --cfg-scale 1.0 --steps 4 -W 512 -H 512 -s -1 \
   --diffusion-fa --mmap -t "$(nproc)" \
   -p "$prompt" -o "$out" "$@"
