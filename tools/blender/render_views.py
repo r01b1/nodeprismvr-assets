@@ -44,35 +44,54 @@ def _view_rotation(azimuth, elevation):
     return (-to_camera).to_track_quat("-Z", "Y").to_euler()
 
 
-def _world_corners(objects, depsgraph):
-    corners = []
+def _world_points(objects, depsgraph):
+    """World-space vertices of the evaluated objects, as an (n, 3) array."""
+    chunks = []
     for ob in objects:
         ob_eval = ob.evaluated_get(depsgraph)
-        corners.extend(ob_eval.matrix_world @ Vector(c) for c in ob_eval.bound_box)
-    return corners
+        matrix = np.array(ob_eval.matrix_world)
+        co = None
+        if ob.type in {"MESH", "CURVE", "SURFACE", "FONT", "META"}:
+            mesh = ob_eval.to_mesh()
+            if mesh is not None and len(mesh.vertices):
+                co = np.empty(len(mesh.vertices) * 3, dtype=np.float32)
+                mesh.vertices.foreach_get("co", co)
+                co = co.reshape(-1, 3).astype(np.float64)
+            ob_eval.to_mesh_clear()
+        if co is None:  # No geometry: use the bounding box.
+            co = np.array([tuple(c) for c in ob_eval.bound_box], dtype=np.float64)
+        chunks.append(co @ matrix[:3, :3].T + matrix[:3, 3])
+    return np.concatenate(chunks)
 
 
-def _frame_camera(cam, corners, center, rotation, ortho, zoom, margin=1.1):
+def _frame_camera(cam, points, center, rotation, ortho, zoom, margin=1.1):
+    """Aim *cam* along *rotation* so that *points* fill the frame (times *margin*)."""
     rot = rotation.to_matrix()
     right, up, back = rot.col[0], rot.col[1], rot.col[2]
-    rel = [c - center for c in corners]
-    xs = [r.dot(right) for r in rel]
-    ys = [r.dot(up) for r in rel]
-    zs = [r.dot(back) for r in rel]
-    radius = max(r.length for r in rel) or 1.0
+    rel = (points - np.array(center)) @ np.array([right, up, back]).T
+    radius = float(np.linalg.norm(rel, axis=1).max()) or 1.0
     cam.rotation_euler = rotation
     cam.data.clip_start = radius * 0.01
+    cam.data.shift_x = cam.data.shift_y = 0.0
     if ortho:
         cam.data.type = "ORTHO"
-        cam.data.ortho_scale = max(max(xs) - min(xs), max(ys) - min(ys), 1e-4) * margin / zoom
-        mid = center + right * (max(xs) + min(xs)) / 2 + up * (max(ys) + min(ys)) / 2
+        lo, hi = rel.min(axis=0), rel.max(axis=0)
+        cam.data.ortho_scale = max(hi[0] - lo[0], hi[1] - lo[1], 1e-4) * margin / zoom
+        mid = center + right * float(hi[0] + lo[0]) / 2 + up * float(hi[1] + lo[1]) / 2
         distance = radius * 3.0
     else:
+        # Stand far enough back to see the whole bounding sphere, so every view
+        # has the same perspective, then crop to the projected object with the
+        # focal length and lens shift (the frame is square).
         cam.data.type = "PERSP"
-        cam.data.lens = _LENS_MM
         cam.data.sensor_width = _SENSOR_MM
-        tan_half = (_SENSOR_MM / 2) / _LENS_MM
-        distance = max(max(abs(x), abs(y)) / tan_half + z for x, y, z in zip(xs, ys, zs, strict=True)) * margin / zoom
+        distance = radius / math.sin(math.atan(_SENSOR_MM / 2 / _LENS_MM))
+        depth = distance - rel[:, 2]
+        u, v = rel[:, 0] / depth, rel[:, 1] / depth
+        half = max(u.max() - u.min(), v.max() - v.min(), 1e-6) / 2 * margin / zoom
+        cam.data.lens = _SENSOR_MM / 2 / half
+        cam.data.shift_x = float(u.max() + u.min()) / 2 / (2 * half)
+        cam.data.shift_y = float(v.max() + v.min()) / 2 / (2 * half)
         mid = center
     cam.data.clip_end = distance + radius * 4.0
     cam.location = mid + back * distance
@@ -216,9 +235,8 @@ def render_views(
     paths = []
     try:
         depsgraph = bpy.context.evaluated_depsgraph_get()
-        corners = _world_corners(targets, depsgraph)
-        bb_min = Vector(tuple(min(c[i] for c in corners) for i in range(3)))
-        bb_max = Vector(tuple(max(c[i] for c in corners) for i in range(3)))
+        points = _world_points(targets, depsgraph)
+        bb_min, bb_max = Vector(points.min(axis=0)), Vector(points.max(axis=0))
         center = Vector(focus) if focus else (bb_min + bb_max) / 2
         size_vec = bb_max - bb_min
 
@@ -262,14 +280,15 @@ def render_views(
         scene.view_settings.gamma = 1.0
         scene.eevee.taa_render_samples = samples
 
-        view_corners = corners
+        view_points = points
         if focus:
             # Frame a cube around the focus point instead of the whole object.
             half = size_vec.length / 2
-            view_corners = [center + Vector((x, y, z)) * half for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
+            view_points = np.array([center + Vector((x, y, z)) * half
+                                    for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)])
 
         for label, azimuth, elevation, ortho in views:
-            _frame_camera(cam, view_corners, center, _view_rotation(azimuth, elevation), ortho, zoom)
+            _frame_camera(cam, view_points, center, _view_rotation(azimuth, elevation), ortho, zoom)
             path = os.path.join(out_dir, label.replace("/", "-").replace(" ", "_") + "." + file_format.lower())
             render.filepath = path
             bpy.ops.render.render(write_still=True)
