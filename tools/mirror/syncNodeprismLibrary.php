@@ -37,7 +37,8 @@ TXT;
 const NPL_CATALOG = <<<'PHP'
 <?php
 // Library catalogue of this mirror: index.json from GitHub plus GLBs that
-// exist only on this server in objects/<category>/ (without preview or stats).
+// exist only on this server in objects/<category>/, described by their own
+// metadata/<id>/meta.json and preview.webp if those exist (no stats).
 // Written by syncNodeprismLibrary (nodeprismvr-assets mirror).
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache');
@@ -52,10 +53,16 @@ foreach (glob(__DIR__ . '/objects/*/*.glb') ?: [] as $path) {
     $id = basename($path, '.glb');
     $file = 'objects/' . $category . '/' . basename($path);
     if (isset($known[$file])) continue;
+    $meta = json_decode((string)@file_get_contents(__DIR__ . "/metadata/$id/meta.json"), true);
+    if (!is_array($meta)) $meta = [];
+    $text = fn($key, $default) => is_string($meta[$key] ?? null) ? $meta[$key] : $default;
+    $preview = "metadata/$id/preview.webp";
     $assets[] = [
-        'id' => $id, 'category' => $category, 'name' => ucwords(str_replace(['-', '_'], ' ', $id)),
-        'description' => '', 'tags' => [], 'author' => '', 'license' => null,
-        'added' => date('Y-m-d', filemtime($path)), 'file' => $file, 'preview' => null, 'source' => null,
+        'id' => $id, 'category' => $category, 'name' => $text('name', ucwords(str_replace(['-', '_'], ' ', $id))),
+        'description' => $text('description', ''),
+        'tags' => array_values(array_filter(is_array($meta['tags'] ?? null) ? $meta['tags'] : [], 'is_string')),
+        'author' => $text('author', ''), 'license' => null, 'added' => date('Y-m-d', filemtime($path)),
+        'file' => $file, 'preview' => is_file(__DIR__ . '/' . $preview) ? $preview : null, 'source' => null,
         'bytes' => filesize($path), 'triangles' => null, 'vertices' => null, 'materials' => [],
         'dimensions' => null, 'extensions' => [], 'serverOnly' => true,
     ];
