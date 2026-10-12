@@ -181,10 +181,14 @@ download, and that the NodePrism app will load by URL.
   tool of the `StratoMCP` server (keep both copies the same). After a merge
   to `main` and the Pages deploy, run `call(syncNodeprismLibrary)`: the
   server fetches the website and the library from GitHub Pages into
-  `www/1b1library/` (same layout: `objects/<category>/`, `metadata/<id>/`),
-  points the pages at its `catalog.php` (which adds GLBs that exist only on
-  the server), writes MIME/CORS rules and sets folder permissions to 0755
-  and files to 0644. It never deletes. Read the server's `help` first.
+  `www/1b1library/`, points the pages at its `catalog.php` (which adds GLBs
+  that exist only on the server, with their own `metadata/<id>/` if there),
+  writes MIME/CORS rules and sets folder permissions to 0755 and files to
+  0644. It never deletes. Read the server's `help` first.
+- The mirror's layout differs from the repo: its `library/` holds only real
+  assets, `library/objects/<category>/<id>.glb` plus `library/images/`,
+  `sounds/` and `videos/` that the user adds there; `metadata/<id>/`,
+  `index.json`, `library.json` and `catalog.php` sit next to the website.
 
 ## Sessions and roles
 

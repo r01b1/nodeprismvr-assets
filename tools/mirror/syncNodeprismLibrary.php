@@ -3,11 +3,14 @@
 // on a PHP web server (the STRATO server's tool dispatcher runs it as a tool):
 //
 //   <target>/index.html, review.html, *.js, *.css   gallery and review page
-//   <target>/objects/<category>/<id>.glb            only GLBs per category
+//   <target>/library/objects/<category>/<id>.glb    only GLBs per category
+//   <target>/library/images/, sounds/, videos/      other assets, added on the server
 //   <target>/metadata/<id>/meta.json, preview.webp
 //   <target>/index.json, library.json               catalogue built on GitHub
 //   <target>/catalog.php                            index.json plus GLBs that exist only here
 //   <target>/.htaccess                              MIME types and CORS for apps
+//
+// library/ holds only the assets themselves, so apps can list it.
 //
 // Only static files with known extensions and checked paths come from GitHub;
 // catalog.php and .htaccess come from this file. Nothing is deleted, so models
@@ -21,13 +24,14 @@
 const NPL_SOURCE = 'https://r01b1.github.io/nodeprismvr-assets/';
 const NPL_TARGET = 'www/1b1library';
 const NPL_ID = '[a-z0-9]+(?:-[a-z0-9]+)*';
+const NPL_ASSETS = 'library';  // GitHub's objects/... lands in <target>/library/objects/...
 
 const NPL_HTACCESS = <<<'TXT'
 # Written by syncNodeprismLibrary (nodeprismvr-assets mirror).
 AddType model/gltf-binary .glb
 AddType image/webp .webp
 <IfModule mod_headers.c>
-  <FilesMatch "\.(glb|json|webp)$">
+  <FilesMatch "\.(glb|gltf|json|webp|png|jpe?g|gif|svg|ktx2|hdr|mp3|ogg|oga|wav|m4a|aac|flac|mp4|webm|ogv|mov)$">
     Header set Access-Control-Allow-Origin "*"
   </FilesMatch>
 </IfModule>
@@ -37,7 +41,7 @@ TXT;
 const NPL_CATALOG = <<<'PHP'
 <?php
 // Library catalogue of this mirror: index.json from GitHub plus GLBs that
-// exist only on this server in objects/<category>/, described by their own
+// exist only on this server in library/objects/<category>/, described by their own
 // metadata/<id>/meta.json and preview.webp if those exist (no stats).
 // Written by syncNodeprismLibrary (nodeprismvr-assets mirror).
 header('Content-Type: application/json; charset=utf-8');
@@ -48,10 +52,10 @@ if (!is_array($index)) $index = [];
 $assets = is_array($index['assets'] ?? null) ? $index['assets'] : [];
 $known = [];
 foreach ($assets as $asset) $known[$asset['file'] ?? ''] = true;
-foreach (glob(__DIR__ . '/objects/*/*.glb') ?: [] as $path) {
+foreach (glob(__DIR__ . '/library/objects/*/*.glb') ?: [] as $path) {
     $category = basename(dirname($path));
     $id = basename($path, '.glb');
-    $file = 'objects/' . $category . '/' . basename($path);
+    $file = 'library/objects/' . $category . '/' . basename($path);
     if (isset($known[$file])) continue;
     $meta = json_decode((string)@file_get_contents(__DIR__ . "/metadata/$id/meta.json"), true);
     if (!is_array($meta)) $meta = [];
@@ -161,7 +165,7 @@ function execute_syncNodeprismLibrary(array $a): array {
             $errors[] = "skipped catalogue entry with unexpected paths: $id";
             continue;
         }
-        $glb = "$target/$file";
+        $glb = "$target/" . NPL_ASSETS . "/$file";
         if (!$force && is_file($glb) && filesize($glb) === (int)($asset['bytes'] ?? -1)) {
             $skipped++;
         } else {
@@ -171,6 +175,12 @@ function execute_syncNodeprismLibrary(array $a): array {
         $get($source . "library/metadata/$id/meta.json", "$target/metadata/$id/meta.json", $isJson);
     }
     $get($source . 'library/library.json', "$target/library.json", $isJson);
+    // The catalogue next to the pages, with GLB paths pointing into library/.
+    foreach ($index['assets'] as &$asset) {
+        if (is_string($asset['file'] ?? null)) $asset['file'] = NPL_ASSETS . '/' . $asset['file'];
+    }
+    unset($asset);
+    $indexBody = json_encode($index, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     if (npl_write("$target/index.json", $indexBody)) $written[] = "$target/index.json";
     else $errors[] = "$target/index.json: write failed";
 
