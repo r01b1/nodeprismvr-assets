@@ -1,0 +1,14 @@
+{
+  "id": "photoreal-meteorite",
+  "name": "Stony Meteorite",
+  "description": "Photorealistic stony meteorite (chondrite), about 31 cm long, without texture maps: black-brown fusion crust with regmaglypts, and a broken corner that shows the grey interior with chondrules, rust stains and metal flecks. Detail comes from geometry, vertex colours with baked ambient occlusion, and three materials. Meshopt-compressed: apps need three.js MeshoptDecoder.",
+  "tags": [
+    "meteorite",
+    "nature",
+    "photoreal",
+    "rock",
+    "space",
+    "vertex-colors"
+  ],
+  "author": "NodePrism"
+}
