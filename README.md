@@ -14,7 +14,7 @@ Browse the assets at **https://r01b1.github.io/nodeprismvr-assets/**.
 | --- | --- |
 | Gallery with 3D viewer | `https://r01b1.github.io/nodeprismvr-assets/` |
 | Catalogue for apps | `https://r01b1.github.io/nodeprismvr-assets/library/index.json` |
-| An asset | `https://r01b1.github.io/nodeprismvr-assets/library/<id>/<id>.glb` |
+| An asset | `https://r01b1.github.io/nodeprismvr-assets/library/objects/<category>/<id>.glb` |
 
 Paths in `index.json` are relative to the index file. Loading an asset in three.js:
 
@@ -33,14 +33,17 @@ Assets are glTF 2.0 binary, +Y up, 1 unit = 1 metre, origin at the base.
 Dense meshes may be compressed: `KHR_mesh_quantization` loads as is,
 `EXT_meshopt_compression` needs the `MeshoptDecoder` above (it ships with
 three.js). Each asset's `extensions` in `index.json` lists what it uses.
-Each asset folder holds the `.glb`, a `preview.webp` and a `meta.json`; the
-Blender sources are in `sources/`.
+The GLBs are sorted into category folders, `library/objects/<category>/`
+(for example `furniture`), which hold nothing but `.glb` files, so an app can
+use the folder names as categories. Each asset's `meta.json` and
+`preview.webp` are in `library/metadata/<id>/`, and its Blender source is in
+`sources/<id>/`. `index.json` lists every asset with its `category`.
 
 ## Repository layout
 
 | Path | Contents |
 | --- | --- |
-| `library/` | The published assets: `<id>/<id>.glb`, `<id>/preview.webp`, `<id>/meta.json`, and `library.json` (library-wide fields) |
+| `library/` | The published assets: `objects/<category>/<id>.glb`, `metadata/<id>/meta.json` and `metadata/<id>/preview.webp`, and `library.json` (library-wide fields) |
 | `sources/` | Blender source file of each asset |
 | `site/` | The gallery website and the review page |
 | `tools/` | Tooling to build and publish assets (Blender, FLUX, library) |
@@ -50,17 +53,19 @@ Blender sources are in `sources/`.
 ## Contributing assets
 
 Assets are submitted as pull requests and reviewed before they enter the
-library. A submission adds one folder per asset and changes nothing else:
+library. A submission adds these files per asset and changes nothing else:
 
 ```
-library/<id>/<id>.glb       glTF 2.0 binary, +Y up, 1 unit = 1 metre, standing on y = 0,
-                            Principled BSDF materials, self-contained, ideally < 20k triangles
-library/<id>/preview.webp   512 x 512, transparent background
-library/<id>/meta.json      {"id", "name", "description", "tags", "author"}
-sources/<id>/<id>.blend     the Blender source
+library/objects/<category>/<id>.glb   glTF 2.0 binary, +Y up, 1 unit = 1 metre, standing on y = 0,
+                                      Principled BSDF materials, self-contained, ideally < 20k triangles
+library/metadata/<id>/preview.webp    512 x 512, transparent background
+library/metadata/<id>/meta.json       {"id", "name", "description", "tags", "author"}
+sources/<id>/<id>.blend               the Blender source
 ```
 
-Asset ids and tags are lowercase kebab-case. Triangle counts, sizes and
+Category folders hold only `.glb` files. Use an existing category where one
+fits; a new one needs the maintainer's approval. Asset ids, categories and
+tags are lowercase kebab-case. Triangle counts, sizes and
 materials are read from the GLB automatically. `tools/blender/library_export.py`,
 run inside Blender, writes all of these files.
 

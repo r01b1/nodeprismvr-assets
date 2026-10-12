@@ -20,7 +20,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from build_library_index import ID_PATTERN, meta_problems  # noqa: E402
+from build_library_index import ID_PATTERN, METADATA_DIR, OBJECTS_DIR, meta_problems, scan_library  # noqa: E402
 from glb_stats import glb_stats  # noqa: E402
 
 # Budgets for a VR app; warnings ask the reviewer to look closer.
@@ -32,7 +32,21 @@ DECODER_EXTENSIONS = {
     "KHR_draco_mesh_compression": "DRACOLoader (GLTFLoader.setDRACOLoader)",
     "KHR_texture_basisu": "KTX2Loader (GLTFLoader.setKTX2Loader)",
 }
-ASSET_FILES = {"{id}.glb", "preview.webp", "meta.json"}
+METADATA_FILES = {"meta.json", "preview.webp"}
+# Paths a submission may change: the GLB in a category folder, its metadata, its source.
+GLB_PATH = re.compile(r"^library/" + OBJECTS_DIR + r"/([^/]+)/([^/]+)\.glb$")
+METADATA_PATH = re.compile(r"^library/" + METADATA_DIR + r"/([^/]+)/[^/]+$")
+SOURCE_PATH = re.compile(r"^sources/([^/]+)/[^/]+$")
+
+
+def asset_of(path):
+    """The asset id a changed path belongs to, or None if a submission may not change it."""
+    for pattern in (METADATA_PATH, SOURCE_PATH):
+        m = pattern.match(path)
+        if m:
+            return m.group(1)
+    m = GLB_PATH.match(path)
+    return m.group(2) if m else None
 
 
 def git(repo, *args):
@@ -66,26 +80,25 @@ def validate_glb(path):
     return json.loads(node.stdout)
 
 
-def check_asset(repo, asset_id):
-    """Return (errors, warnings, stats) for library/<asset_id> in the checkout."""
+def check_asset(repo, asset_id, category):
+    """Return (errors, warnings, stats) for the asset in library/objects/<category>/ and library/metadata/."""
     errors, warnings, stats = [], [], {}
-    asset_dir = os.path.join(repo, "library", asset_id)
     if not ID_PATTERN.match(asset_id):
-        errors.append("The folder name `{}` is not a valid asset id (lowercase kebab-case).".format(asset_id))
+        errors.append("`{}` is not a valid asset id (lowercase kebab-case).".format(asset_id))
         return errors, warnings, stats
-    expected = {name.format(id=asset_id) for name in ASSET_FILES}
-    present = set(os.listdir(asset_dir))
-    for name in sorted(expected - present):
-        errors.append("`library/{}/{}` is missing.".format(asset_id, name))
-    for name in sorted(present - expected):
-        errors.append("`library/{}/{}` is not expected; an asset folder holds only {}.".format(
-            asset_id, name, ", ".join(sorted(expected))))
+    meta_dir = os.path.join(repo, "library", METADATA_DIR, asset_id)
+    present = set(os.listdir(meta_dir)) if os.path.isdir(meta_dir) else set()
+    for name in sorted(METADATA_FILES - present):
+        errors.append("`library/{}/{}/{}` is missing.".format(METADATA_DIR, asset_id, name))
+    for name in sorted(present - METADATA_FILES):
+        errors.append("`library/{}/{}/{}` is not expected; the metadata folder holds only {}.".format(
+            METADATA_DIR, asset_id, name, ", ".join(sorted(METADATA_FILES))))
     if not os.path.isfile(os.path.join(repo, "sources", asset_id, asset_id + ".blend")):
         warnings.append("No Blender source `sources/{0}/{0}.blend`.".format(asset_id))
 
     if "meta.json" in present:
         try:
-            with open(os.path.join(asset_dir, "meta.json")) as f:
+            with open(os.path.join(meta_dir, "meta.json")) as f:
                 meta = json.load(f)
             stats["name"] = meta.get("name", "")
             errors.extend(meta_problems(asset_id, meta))
@@ -94,13 +107,13 @@ def check_asset(repo, asset_id):
 
     if "preview.webp" in present:
         try:
-            size = webp_size(os.path.join(asset_dir, "preview.webp"))
+            size = webp_size(os.path.join(meta_dir, "preview.webp"))
             if size != (512, 512):
                 warnings.append("preview.webp is {}x{}; previews are 512x512.".format(*size))
         except (ValueError, OSError) as ex:
             errors.append("preview.webp: {}".format(ex))
 
-    glb = os.path.join(asset_dir, asset_id + ".glb")
+    glb = os.path.join(repo, "library", OBJECTS_DIR, category, asset_id + ".glb")
     if os.path.isfile(glb):
         stats["bytes"] = os.path.getsize(glb)
         try:
@@ -150,27 +163,45 @@ def main():
     changes = [line.split("\t") for line in git(args.repo, "diff", "--name-status", "--no-renames",
                                                     "{}...{}".format(args.base, args.head)).splitlines()]
     paths = [c[-1] for c in changes]
-    outside = [p for p in paths if not re.match(r"^(library|sources)/[^/]+/", p)]
-    asset_ids = sorted({p.split("/")[1] for p in paths if re.match(r"^(library|sources)/[^/]+/", p)})
+    deleted = {c[-1] for c in changes if c[0] == "D"}
+    outside = [p for p in paths if asset_of(p) is None]
+    asset_ids = sorted({asset_of(p) for p in paths} - {None})
+    categories, layout_problems = scan_library(os.path.join(args.repo, "library"))
+    base_categories = {os.path.basename(p) for p in git(args.repo, "ls-tree", "-d", "--name-only",
+                                                         args.base, "library/{}/".format(OBJECTS_DIR)).split()}
 
     lines = ["## Asset submission check", ""]
     failed = False
     if outside:
         failed = True
-        lines += ["❌ An asset submission may only change `library/<id>/` and `sources/<id>/`. "
-                  "Send changes to other files in a separate pull request:", ""]
+        lines += ["❌ An asset submission may only change `library/objects/<category>/<id>.glb`, "
+                  "`library/metadata/<id>/` and `sources/<id>/`. Category folders hold only .glb "
+                  "files; meta.json and preview.webp go to `library/metadata/<id>/`. Send changes "
+                  "to other files in a separate pull request:", ""]
         lines += ["- `{}`".format(p) for p in outside] + [""]
+    if layout_problems:
+        failed = True
+        lines += ["❌ Library layout:", ""] + ["- " + p for p in layout_problems] + [""]
 
     for asset_id in asset_ids:
-        if not os.path.isdir(os.path.join(args.repo, "library", asset_id)):
-            lines += ["### `{}`".format(asset_id), "",
-                      "⚠️ This pull request removes the asset. Apps may still reference it.", ""]
-            continue
-        errors, warnings, stats = check_asset(args.repo, asset_id)
+        if asset_id not in categories:
+            if all(p in deleted for p in paths if asset_of(p) == asset_id):
+                lines += ["### `{}`".format(asset_id), "",
+                          "⚠️ This pull request removes the asset. Apps may still reference it.", ""]
+            elif not os.path.isdir(os.path.join(args.repo, "library", METADATA_DIR, asset_id)):
+                failed = True
+                lines += ["### ❌ `{}`".format(asset_id), "",
+                          "- ❌ No `library/objects/<category>/{0}.glb` and no `library/metadata/{0}/`.".format(asset_id), ""]
+            continue  # Metadata without a GLB is reported as a layout problem.
+        category = categories[asset_id]
+        errors, warnings, stats = check_asset(args.repo, asset_id, category)
+        if category not in base_categories:
+            warnings.append("Adds the new category `{}`; apps show category folders by name.".format(category))
         failed = failed or bool(errors)
-        lines += ["### {} `{}`".format("❌" if errors else "✅", asset_id), ""]
+        lines += ["### {} `{}` in `{}`".format("❌" if errors else "✅", asset_id, category), ""]
         if args.head_repo:
-            raw = "https://raw.githubusercontent.com/{}/{}/library/{}/".format(args.head_repo, args.head, asset_id)
+            raw = "https://raw.githubusercontent.com/{}/{}/library/{}/{}/".format(
+                args.head_repo, args.head, METADATA_DIR, asset_id)
             lines += ['<img src="{}preview.webp" width="256" alt="preview">'.format(raw), ""]
         if args.review_url and args.pr:
             lines += ["**[Look at it in 3D]({}#pr={}&id={})**".format(args.review_url, args.pr, asset_id), ""]

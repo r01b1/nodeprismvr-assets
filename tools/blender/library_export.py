@@ -4,12 +4,13 @@
 #     path = "/home/user/nodeprismvr-assets/tools/blender/library_export.py"
 #     exec(compile(open(path).read(), path, "exec"))
 #     result = export_asset("crystal-cluster", ["CrystalCluster"], name="Crystal Cluster",
-#                           description="...", tags=["crystal", "nature"])
+#                           description="...", tags=["crystal", "nature"], category="minerals")
 #
-# Writes library/<id>/<id>.glb, library/<id>/preview.webp and
-# library/<id>/meta.json (name, description, tags, author), and saves the
-# scene as sources/<id>/<id>.blend. Statistics for the catalogue are read from
-# the GLB when the site is built (tools/library/build_library_index.py).
+# Writes library/objects/<category>/<id>.glb (category folders hold only GLBs,
+# so apps can use folder names as categories), library/metadata/<id>/preview.webp
+# and library/metadata/<id>/meta.json (name, description, tags, author), and
+# saves the scene as sources/<id>/<id>.blend. Statistics for the catalogue are read
+# from the GLB when the site is built (tools/library/build_library_index.py).
 
 import inspect
 import json
@@ -24,6 +25,8 @@ from mathutils import Vector
 _HERE = os.path.dirname(os.path.abspath(inspect.currentframe().f_code.co_filename))
 _REPO = os.path.dirname(os.path.dirname(_HERE))
 _ID_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+_OBJECTS_DIR = "objects"
+_METADATA_DIR = "metadata"
 
 
 def _with_children(objects):
@@ -75,26 +78,30 @@ def _render_preview(objects, path):
 
 
 def render_preview(asset_id, objects):
-    """Render only library/<asset_id>/preview.webp again, e.g. after a tooling fix."""
-    path = os.path.join(_REPO, "library", asset_id, "preview.webp")
+    """Render only library/metadata/<asset_id>/preview.webp again, e.g. after a tooling fix."""
+    path = os.path.join(_REPO, "library", _METADATA_DIR, asset_id, "preview.webp")
     _render_preview(_with_children([bpy.data.objects[n] for n in objects]), path)
     return {"preview": path}
 
 
-def export_asset(asset_id, objects, name, description="", tags=(), author="NodePrism"):
+def export_asset(asset_id, objects, name, description="", tags=(), author="NodePrism", *, category):
     """
     Export *objects* (names; children are included) as library asset *asset_id*
-    (lowercase kebab-case). Returns the paths written and the asset's stats.
+    in *category* (both lowercase kebab-case). Returns the paths written and the
+    asset's stats.
     """
     if not _ID_PATTERN.match(asset_id):
         raise ValueError("asset_id must be lowercase kebab-case, e.g. 'crystal-cluster'")
+    if not _ID_PATTERN.match(category):
+        raise ValueError("category must be lowercase kebab-case, e.g. 'planets'")
     obs = _with_children([bpy.data.objects[n] for n in objects])
-    asset_dir = os.path.join(_REPO, "library", asset_id)
+    category_dir = os.path.join(_REPO, "library", _OBJECTS_DIR, category)
+    meta_dir = os.path.join(_REPO, "library", _METADATA_DIR, asset_id)
     source_dir = os.path.join(_REPO, "sources", asset_id)
-    os.makedirs(asset_dir, exist_ok=True)
-    os.makedirs(source_dir, exist_ok=True)
-    glb = os.path.join(asset_dir, asset_id + ".glb")
-    preview = os.path.join(asset_dir, "preview.webp")
+    for path in (category_dir, meta_dir, source_dir):
+        os.makedirs(path, exist_ok=True)
+    glb = os.path.join(category_dir, asset_id + ".glb")
+    preview = os.path.join(meta_dir, "preview.webp")
     blend = os.path.join(source_dir, asset_id + ".blend")
 
     if bpy.context.object and bpy.context.object.mode != "OBJECT":
@@ -117,7 +124,7 @@ def export_asset(asset_id, objects, name, description="", tags=(), author="NodeP
         "tags": sorted(set(tags)),
         "author": author,
     }
-    meta_path = os.path.join(asset_dir, "meta.json")
+    meta_path = os.path.join(meta_dir, "meta.json")
     with open(meta_path, "w") as f:
         json.dump(meta, f, indent=2)
         f.write("\n")

@@ -13,7 +13,7 @@ function assetUrl(asset, key) {
 }
 
 function matches(asset, query) {
-  const text = `${asset.name} ${asset.description} ${asset.tags.join(" ")}`.toLowerCase();
+  const text = `${asset.name} ${asset.description} ${asset.category} ${asset.tags.join(" ")}`.toLowerCase();
   return query.split(/\s+/).every((word) => text.includes(word))
     && [...activeTags].every((tag) => asset.tags.includes(tag));
 }
@@ -93,6 +93,7 @@ function show(asset) {
     tags: asset.tags,
     glbUrl,
     details: [
+      ["Category", asset.category],
       ["License", licenseLink(asset.license, asset.license === library.license ? library.licenseUrl : null)],
       ["Author", asset.author],
       ["Added", asset.added],

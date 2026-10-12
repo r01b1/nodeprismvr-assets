@@ -110,10 +110,16 @@ and inspiration images on the CPU, through stable-diffusion.cpp.
 The library is the point of this repo: GLB files that anyone can browse and
 download, and that the NodePrism app will load by URL.
 
-- Layout: `library/<id>/<id>.glb`, `library/<id>/preview.webp` and
-  `library/<id>/meta.json`; Blender sources in `sources/<id>/<id>.blend`;
-  library-wide fields in `library/library.json`. Asset ids are lowercase
-  kebab-case.
+- Layout (the NodePrism app links the library directly and takes categories
+  from folder names):
+  - `library/objects/<category>/<id>.glb`: category folders such as
+    `furniture` or `planets` hold only `.glb` files, nothing else.
+  - `library/metadata/<id>/meta.json` and `library/metadata/<id>/preview.webp`.
+  - `sources/<id>/<id>.blend`, and library-wide fields in `library/library.json`.
+
+  Asset ids and categories are lowercase kebab-case; ids are unique across
+  categories. A new category is a folder name the app shows, so pick it with
+  the user.
 - `meta.json` holds only `id`, `name`, `description`, `tags`, `author`.
   `tools/library/build_library_index.py` reads triangles, vertices, size and
   materials from the GLB (`tools/library/glb_stats.py`) and the date added
@@ -128,16 +134,17 @@ download, and that the NodePrism app will load by URL.
      ns = {}
      exec(compile(open(path).read(), path, "exec"), ns)
      result = ns["export_asset"]("crystal-cluster", ["CrystalCluster"], name="Crystal Cluster",
-                                 description="...", tags=["crystal", "nature"])
+                                 description="...", tags=["crystal", "nature"], category="minerals")
      ```
      It writes the GLB, a 512 px WebP preview with transparent background, the
      meta.json and the .blend source. Look at the preview before going on.
      `ns["render_preview"](asset_id, objects)` renders only the preview again,
      e.g. after a change to the preview tooling.
   3. Compress dense meshes (see "Asset defaults for three.js"):
-     `node tools/gltf/optimize_glb.mjs library/<id>/<id>.glb library/<id>/<id>.glb --mode quantize`
+     `node tools/gltf/optimize_glb.mjs IN.glb OUT.glb --mode quantize` on
+     `library/objects/<category>/<id>.glb` (in place is fine)
      (run `npm ci --prefix tools/gltf` once).
-  4. Validate: `node tools/library/validate_glb.mjs library/<id>/<id>.glb`
+  4. Validate: `node tools/library/validate_glb.mjs library/objects/<category>/<id>.glb`
      (run `npm ci --prefix tools/library` once), and three.js
      `GLTFLoader.parseAsync` in Node (with `setMeshoptDecoder` for meshopt).
   5. Optionally preview the site: `tools/library/build_site.sh`, then
@@ -146,15 +153,17 @@ download, and that the NodePrism app will load by URL.
      catalogue and deploys the site.
 - Community submissions are pull requests. `.github/workflows/check-submission.yml`
   runs `tools/library/check_submission.py` from the base branch against the
-  pull request: only `library/<id>/` and `sources/<id>/` may change, files and
-  meta.json must be complete, the glTF-Validator must pass, and budgets
+  pull request: only `library/objects/<category>/<id>.glb`,
+  `library/metadata/<id>/` and `sources/<id>/` may change, category folders
+  hold only GLBs, files and meta.json must be complete, a new category is
+  flagged, the glTF-Validator must pass, and budgets
   (100k triangles / 10 MB hard, 20k / 2 MB warning), self-containment and
   placement on y = 0 are checked. The admin looks at the asset in 3D on
   `site/review.html` (open submissions, loaded straight from the pull request)
   and approves by merging or rejects by closing on GitHub.
 - Public URLs: gallery `https://r01b1.github.io/nodeprismvr-assets/`, review
-  page `.../review.html`, catalogue `.../library/index.json`, files
-  `.../library/<id>/<id>.glb`. Files are also on
+  page `.../review.html`, catalogue `.../library/index.json` (with each
+  asset's `category`), files `.../library/objects/<category>/<id>.glb`. Files are also on
   `https://raw.githubusercontent.com/r01b1/nodeprismvr-assets/main/library/...`
   (not the catalogue, which is built at deploy). All allow cross-origin loading.
 - Apps may reference published ids and file names: do not rename or delete
@@ -174,8 +183,9 @@ Work is split between two cloud sessions:
 - **Leitung** (supervisor): maintains the tooling (`tools/`, `site/`,
   `.claude/`, `.github/`, `.mcp.json`, docs), assigns asset tasks to the
   workshop and checks its results.
-- **Werkstatt** (workshop): builds assets. It changes only `library/<id>/`
-  and `sources/<id>/`, submits each asset as a pull request from a branch
+- **Werkstatt** (workshop): builds assets. It changes only
+  `library/objects/<category>/<id>.glb`, `library/metadata/<id>/` and
+  `sources/<id>/`, submits each asset as a pull request from a branch
   `claude/asset-<id>`, never merges itself, and reports tooling problems to
   the Leitung instead of fixing them.
 
