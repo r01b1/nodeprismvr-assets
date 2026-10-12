@@ -14,3 +14,4 @@ library/index.json
 
 # Node modules of the library tools
 tools/library/node_modules/
+tools/gltf/node_modules/

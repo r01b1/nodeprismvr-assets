@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-Build the library catalogue (index.json) from library/library.json, each
-library/<id>/meta.json and the asset files themselves.
+Build the library catalogue (index.json) from library/library.json, the
+metadata in library/metadata/<id>/ and the asset files themselves.
+
+Layout: library/objects/<category>/<id>.glb, where each category folder (e.g.
+planets) holds only .glb files, so apps can treat folder names as categories;
+each asset's meta.json and preview.webp are in library/metadata/<id>/.
 
 meta.json holds only what a person writes (name, description, tags, author);
 file sizes, triangles, vertices, dimensions and materials are read from the
@@ -28,6 +32,48 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 LIBRARY = os.path.join(REPO, "library")
 ID_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 META_FIELDS = {"id", "name", "description", "tags", "author"}
+OBJECTS_DIR = "objects"    # library/objects/<category>/<id>.glb
+METADATA_DIR = "metadata"  # library/metadata/<id>/: meta.json, preview.webp
+
+
+def scan_library(library):
+    """
+    Map each asset id to its category (the folder in library/objects/ holding
+    <id>.glb) and list the layout problems: files outside category folders,
+    other files than .glb in them, ids in two categories, GLBs without
+    metadata and metadata without a GLB.
+    """
+    categories, problems = {}, []
+    for name in sorted(set(os.listdir(library)) - {OBJECTS_DIR, METADATA_DIR, "library.json", "index.json"}):
+        problems.append("library/{}: the library holds only {}/, {}/ and library.json".format(
+            name, OBJECTS_DIR, METADATA_DIR))
+    objects = os.path.join(library, OBJECTS_DIR)
+    for name in sorted(os.listdir(objects)) if os.path.isdir(objects) else []:
+        path = os.path.join(objects, name)
+        if not os.path.isdir(path):
+            problems.append("library/{}/{}: files go into a category folder, library/{}/<category>/".format(
+                OBJECTS_DIR, name, OBJECTS_DIR))
+            continue
+        if not ID_PATTERN.match(name):
+            problems.append("category folder library/{}/{} must be lowercase kebab-case".format(OBJECTS_DIR, name))
+        for entry in sorted(os.listdir(path)):
+            asset_id, ext = os.path.splitext(entry)
+            if ext != ".glb" or not os.path.isfile(os.path.join(path, entry)):
+                problems.append("library/{}/{}/{}: category folders hold only .glb files "
+                                "(metadata goes to library/{}/<id>/)".format(OBJECTS_DIR, name, entry, METADATA_DIR))
+            elif asset_id in categories:
+                problems.append("asset {!r} is in two categories, {} and {}".format(
+                    asset_id, categories[asset_id], name))
+            else:
+                categories[asset_id] = name
+    metadata = os.path.join(library, METADATA_DIR)
+    described = set(os.listdir(metadata)) if os.path.isdir(metadata) else set()
+    for asset_id in sorted(described - set(categories)):
+        problems.append("library/{}/{} has no GLB in a category folder".format(METADATA_DIR, asset_id))
+    for asset_id in sorted(set(categories) - described):
+        problems.append("library/{}/{}/{}.glb has no library/{}/{}/".format(
+            OBJECTS_DIR, categories[asset_id], asset_id, METADATA_DIR, asset_id))
+    return categories, problems
 
 
 def meta_problems(asset_id, meta):
@@ -49,40 +95,41 @@ def meta_problems(asset_id, meta):
     return problems
 
 
-def date_added(asset_id):
-    """Date of the first commit that added the asset's GLB, else today."""
-    path = "library/{0}/{0}.glb".format(asset_id)
+def date_added(path):
+    """Date of the first commit that added the file at *path* (following moves), else today."""
     try:
-        dates = subprocess.run(["git", "-C", REPO, "log", "--diff-filter=A", "--format=%as", "--", path],
+        dates = subprocess.run(["git", "-C", REPO, "log", "--follow", "--diff-filter=A", "--format=%as", "--", path],
                                capture_output=True, text=True, check=True).stdout.split()
     except (OSError, subprocess.CalledProcessError):
         dates = []
     return dates[-1] if dates else datetime.date.today().isoformat()
 
 
-def asset_entry(asset_id, license_id):
-    asset_dir = os.path.join(LIBRARY, asset_id)
-    with open(os.path.join(asset_dir, "meta.json")) as f:
+def asset_entry(asset_id, category, license_id):
+    meta_dir = os.path.join(LIBRARY, METADATA_DIR, asset_id)
+    with open(os.path.join(meta_dir, "meta.json")) as f:
         meta = json.load(f)
     problems = meta_problems(asset_id, meta)
-    glb = os.path.join(asset_dir, asset_id + ".glb")
-    for path in (glb, os.path.join(asset_dir, "preview.webp")):
-        if not os.path.isfile(path):
-            problems.append("{} is missing".format(os.path.relpath(path, REPO)))
+    file = "{}/{}/{}.glb".format(OBJECTS_DIR, category, asset_id)
+    preview = "{}/{}/preview.webp".format(METADATA_DIR, asset_id)
+    if not os.path.isfile(os.path.join(LIBRARY, preview)):
+        problems.append("library/{} is missing".format(preview))
     if problems:
         raise ValueError("; ".join(problems))
+    glb = os.path.join(LIBRARY, file)
     stats = glb_stats(glb)
     source = "sources/{0}/{0}.blend".format(asset_id)
     return {
         "id": asset_id,
+        "category": category,
         "name": meta["name"].strip(),
         "description": meta["description"].strip(),
         "tags": sorted(set(meta["tags"])),
         "author": meta["author"].strip(),
         "license": license_id,
-        "added": date_added(asset_id),
-        "file": "{0}/{0}.glb".format(asset_id),
-        "preview": "{}/preview.webp".format(asset_id),
+        "added": date_added("library/" + file),
+        "file": file,
+        "preview": preview,
         "source": source if os.path.isfile(os.path.join(REPO, source)) else None,
         "bytes": os.path.getsize(glb),
         "triangles": stats["triangles"],
@@ -96,16 +143,16 @@ def asset_entry(asset_id, license_id):
 def build():
     with open(os.path.join(LIBRARY, "library.json")) as f:
         index = json.load(f)
-    assets, errors = [], []
-    for asset_id in sorted(os.listdir(LIBRARY)):
-        if not os.path.isdir(os.path.join(LIBRARY, asset_id)):
-            continue
+    categories, errors = scan_library(LIBRARY)
+    assets = []
+    for asset_id, category in sorted(categories.items()):
         try:
-            assets.append(asset_entry(asset_id, index.get("license")))
+            assets.append(asset_entry(asset_id, category, index.get("license")))
         except (OSError, ValueError, KeyError) as ex:
-            errors.append("library/{}: {}".format(asset_id, ex))
+            errors.append("{}: {}".format(asset_id, ex))
     if errors:
         sys.exit("\n".join(errors))
+    index["categories"] = sorted(set(categories.values()))
     index["assets"] = assets
     return index
 

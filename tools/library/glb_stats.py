@@ -11,6 +11,7 @@ import struct
 _GLB_MAGIC = 0x46546C67  # "glTF"
 _CHUNK_JSON = 0x4E4F534A
 _IDENTITY = [1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0]  # column-major
+_NORMALIZED_MAX = {5120: 127, 5121: 255, 5122: 32767, 5123: 65535}  # BYTE ... UNSIGNED_SHORT
 
 
 def read_gltf_json(path):
@@ -50,6 +51,17 @@ def _node_matrix(node):
     return m
 
 
+def _accessor_bounds(accessor):
+    """min and max of an accessor as floats (quantized meshes store normalized integers)."""
+    lo, hi = accessor["min"], accessor["max"]
+    if accessor.get("normalized"):
+        # KHR_mesh_quantization: min/max hold the stored integers, which decode
+        # to c / 127, c / 255, c / 32767 or c / 65535 (signed values clamp at -1).
+        scale = _NORMALIZED_MAX[accessor["componentType"]]
+        lo, hi = ([max(v / scale, -1.0) for v in values] for values in (lo, hi))
+    return lo, hi
+
+
 def _transform(m, p):
     x, y, z = p
     return tuple(m[r] * x + m[4 + r] * y + m[8 + r] * z + m[12 + r] for r in range(3))
@@ -87,7 +99,7 @@ def glb_stats(path):
                 if "material" in prim:
                     material = gltf["materials"][prim["material"]]
                     materials.add(material.get("name") or "material_{}".format(prim["material"]))
-                pmin, pmax = position["min"], position["max"]
+                pmin, pmax = _accessor_bounds(position)
                 corners = [(x, y, z) for x in (pmin[0], pmax[0])
                            for y in (pmin[1], pmax[1]) for z in (pmin[2], pmax[2])]
                 for corner in corners:
