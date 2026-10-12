@@ -7,6 +7,33 @@ import { openViewer } from "./viewer.js";
 const CHECK_NAME = "Check asset submission";
 const $ = (id) => document.getElementById(id);
 
+// Library layout: library/objects/<category>/<id>.glb (category folders hold
+// only GLBs), library/metadata/<id>/meta.json and preview.webp, sources/<id>/.
+const GLB_PATH = /^library\/objects\/([^/]+)\/([^/]+)\.glb$/;
+const METADATA_PATH = /^library\/metadata\/([^/]+)\/[^/]+$/;
+const SOURCE_PATH = /^sources\/[^/]+\/[^/]+$/;
+
+function glbIn(filename) {
+  const m = filename.match(GLB_PATH);
+  return m ? { category: m[1], id: m[2] } : null;
+}
+
+// The assets a pull request touches: id -> { category, removed }.
+function assetsIn(files, publishedCategories) {
+  const assets = new Map();
+  for (const f of files) {
+    const glb = glbIn(f.filename);
+    if (glb && (!assets.has(glb.id) || assets.get(glb.id).removed)) {
+      assets.set(glb.id, { category: glb.category, removed: f.status === "removed" });
+    }
+  }
+  for (const f of files) {
+    const id = f.filename.match(METADATA_PATH)?.[1];
+    if (id && !assets.has(id)) assets.set(id, { category: publishedCategories.get(id) || "unknown", removed: false });
+  }
+  return assets;
+}
+
 async function getJson(url) {
   const response = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
   if (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0") {
@@ -27,15 +54,15 @@ function checkBadge(check) {
   return check.conclusion === "success" ? badge("check passed", "ok") : badge(`check ${check.conclusion}`, "fail");
 }
 
-async function loadSubmissions(repo, publishedIds) {
+async function loadSubmissions(repo, publishedCategories) {
   const api = `https://api.github.com/repos/${repo}`;
   const pulls = await getJson(`${api}/pulls?state=open&per_page=50`);
   const submissions = [];
   for (const pr of pulls) {
     const files = await getJson(`${api}/pulls/${pr.number}/files?per_page=100`);
-    const ids = [...new Set(files.map((f) => f.filename.match(/^library\/([^/]+)\//)?.[1]).filter(Boolean))];
-    if (!ids.length) continue;
-    const others = files.filter((f) => !/^(library|sources)\//.test(f.filename));
+    const assets = assetsIn(files, publishedCategories);
+    if (!assets.size) continue;
+    const others = files.filter((f) => !glbIn(f.filename) && !METADATA_PATH.test(f.filename) && !SOURCE_PATH.test(f.filename));
     let check = null;
     try {
       const runs = await getJson(`${api}/commits/${pr.head.sha}/check-runs?check_name=${encodeURIComponent(CHECK_NAME)}`);
@@ -44,19 +71,18 @@ async function loadSubmissions(repo, publishedIds) {
       check = null;
     }
     const raw = `https://raw.githubusercontent.com/${pr.head.repo.full_name}/${pr.head.sha}/`;
-    for (const id of ids) {
+    for (const [id, { category, removed }] of assets) {
       let meta = null;
       try {
-        meta = await (await fetch(`${raw}library/${id}/meta.json`)).json();
+        meta = await (await fetch(`${raw}library/metadata/${id}/meta.json`)).json();
       } catch {
         meta = null;
       }
       submissions.push({
-        id, pr, check, meta, others,
-        isUpdate: publishedIds.has(id),
-        removed: files.some((f) => f.filename === `library/${id}/${id}.glb` && f.status === "removed"),
-        glbUrl: `${raw}library/${id}/${id}.glb`,
-        previewUrl: `${raw}library/${id}/preview.webp`,
+        id, category, removed, pr, check, meta, others,
+        isUpdate: publishedCategories.has(id),
+        glbUrl: `${raw}library/objects/${category}/${id}.glb`,
+        previewUrl: `${raw}library/metadata/${id}/preview.webp`,
       });
     }
   }
@@ -85,6 +111,7 @@ function show(s) {
     badges: badgesFor(s),
     details: [
       ["Asset id", s.id],
+      ["Category", s.category],
       ["Author", s.meta?.author || "–"],
       ["Submitted by", `@${s.pr.user.login}`],
       ["Pull request", s.pr.title],
@@ -123,7 +150,7 @@ try {
   const index = await (await fetch("library/index.json")).json();
   const repo = new URL(index.repository).pathname.replace(/^\/|\/$/g, "");
   $("pulls-link").href = `${index.repository}/pulls`;
-  const submissions = await loadSubmissions(repo, new Set(index.assets.map((a) => a.id)));
+  const submissions = await loadSubmissions(repo, new Map(index.assets.map((a) => [a.id, a.category])));
   render(submissions);
   const params = new URLSearchParams(location.hash.slice(1));
   const linked = submissions.find((s) => String(s.pr.number) === params.get("pr") && (!params.get("id") || s.id === params.get("id")));
