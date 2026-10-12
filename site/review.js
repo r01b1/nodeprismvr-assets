@@ -2,7 +2,7 @@
 // shows each submitted asset in the 3D viewer straight from the pull request,
 // and links to GitHub, where merging approves it and closing rejects it.
 // Uses the public GitHub API without authentication (60 requests per hour).
-import { openViewer } from "./viewer.js";
+import { catalogUrl, openViewer } from "./viewer.js";
 
 const CHECK_NAME = "Check asset submission";
 const $ = (id) => document.getElementById(id);
@@ -147,7 +147,7 @@ function render(submissions) {
 }
 
 try {
-  const index = await (await fetch("library/index.json")).json();
+  const index = await (await fetch(catalogUrl, { cache: "no-cache" })).json();
   const repo = new URL(index.repository).pathname.replace(/^\/|\/$/g, "");
   $("pulls-link").href = `${index.repository}/pulls`;
   const submissions = await loadSubmissions(repo, new Map(index.assets.map((a) => [a.id, a.category])));

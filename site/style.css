@@ -102,6 +102,13 @@ main { max-width: 1280px; margin: 0 auto; padding: 0 24px 48px; }
   object-fit: contain;
   background: radial-gradient(circle at 50% 40%, #2a3340, #151a21 70%);
 }
+.card .no-preview {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  color: var(--muted);
+  background: radial-gradient(circle at 50% 40%, #2a3340, #151a21 70%);
+}
 .card .meta { padding: 10px 12px 12px; }
 .card .name { font-weight: 600; }
 .card .sub { color: var(--muted); font-size: 13px; }

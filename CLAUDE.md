@@ -174,7 +174,17 @@ download, and that the NodePrism app will load by URL.
   then `npx playwright install-deps webkit`.
 - `site/` is static (no build step): `viewer.js` is the shared three.js viewer
   (three.js from jsDelivr, pinned), `app.js` the gallery, `review.js` the
-  review page (public GitHub API, 60 anonymous requests per hour).
+  review page (public GitHub API, 60 anonymous requests per hour). The pages
+  read the catalogue named by their `library-catalog` meta tag.
+- Mirror on the user's STRATO server (plan B against GitHub's traffic
+  limits): `tools/mirror/syncNodeprismLibrary.php` is installed there as a
+  tool of the `StratoMCP` server (keep both copies the same). After a merge
+  to `main` and the Pages deploy, run `call(syncNodeprismLibrary)`: the
+  server fetches the website and the library from GitHub Pages into
+  `www/1b1library/` (same layout: `objects/<category>/`, `metadata/<id>/`),
+  points the pages at its `catalog.php` (which adds GLBs that exist only on
+  the server), writes MIME/CORS rules and sets folder permissions to 0755
+  and files to 0644. It never deletes. Read the server's `help` first.
 
 ## Sessions and roles
 

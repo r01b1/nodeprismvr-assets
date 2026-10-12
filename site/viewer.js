@@ -33,6 +33,10 @@ const TEMPLATE = `
     </aside>
   </div>`;
 
+// The library catalogue named by the page (see the library-catalog meta tag).
+export const catalogUrl = new URL(
+  document.querySelector('meta[name="library-catalog"]')?.content || "library/index.json", location.href);
+
 let ui = null;
 let renderer, scene, camera, controls, model, grid;
 let wireframe = false;

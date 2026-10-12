@@ -87,6 +87,7 @@ it to the public domain under CC0 1.0.
 | `tools/blender/library_export.py` | Export an asset from Blender into `library/` and `sources/` (GLB, WebP preview, meta.json, .blend source). |
 | `tools/gltf/optimize_glb.mjs` | Compresses a GLB with glTF Transform and meshoptimizer: `--mode quantize` (`KHR_mesh_quantization`, no decoder needed) or `--mode meshopt` (`EXT_meshopt_compression`, needs three.js's `MeshoptDecoder`). Install with `npm ci --prefix tools/gltf`. |
 | `tools/library/` | `build_library_index.py` builds the catalogue from meta.json and the GLBs (`glb_stats.py`); `check_submission.py` and `validate_glb.mjs` check pull requests (`.github/workflows/check-submission.yml`). |
+| `tools/mirror/syncNodeprismLibrary.php` | Mirrors the published site and library to a PHP web server: it fetches them from GitHub Pages (`site-files.json`, `library/index.json`), adds models that exist only on that server to the catalogue (`catalog.php`) and never deletes anything. |
 | `site/`, `tools/library/build_site.sh`, `.github/workflows/pages.yml` | The gallery and review pages; the workflow assembles them with the library and the catalogue and deploys them to GitHub Pages on every push to `main`. |
 | `.claude/hooks/session-start.sh` | Claude Code cloud sessions only: runs the Blender scripts when a session starts and the FLUX setup in the background. |
 | `.claude/settings.json` | Registers that hook, plus a PostToolUse hook that snapshots the scene after every `execute_blender_code`, so a paused cloud VM does not lose it. |

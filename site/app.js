@@ -1,8 +1,9 @@
 // Gallery of the NodePrism asset library.
-// Reads library/index.json (built by tools/library/build_library_index.py).
-import { formatBytes, openViewer } from "./viewer.js";
+// Reads the catalogue (library/index.json, built by tools/library/build_library_index.py,
+// or what the page's library-catalog meta tag names); asset paths are relative to it.
+import { catalogUrl, formatBytes, openViewer } from "./viewer.js";
 
-const libraryUrl = new URL("library/", location.href);
+const libraryUrl = new URL("./", catalogUrl);
 const $ = (id) => document.getElementById(id);
 
 let library = null;
@@ -58,10 +59,16 @@ function renderGrid() {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "card";
-    const img = document.createElement("img");
-    img.src = assetUrl(asset, "preview");
-    img.alt = asset.name;
-    img.loading = "lazy";
+    // Assets that exist only on a mirror may come without preview or stats.
+    const img = document.createElement(asset.preview ? "img" : "div");
+    if (asset.preview) {
+      img.src = assetUrl(asset, "preview");
+      img.alt = asset.name;
+      img.loading = "lazy";
+    } else {
+      img.className = "no-preview";
+      img.textContent = "No preview";
+    }
     const meta = document.createElement("div");
     meta.className = "meta";
     const name = document.createElement("div");
@@ -69,7 +76,10 @@ function renderGrid() {
     name.textContent = asset.name;
     const sub = document.createElement("div");
     sub.className = "sub";
-    sub.textContent = `${asset.triangles.toLocaleString("en")} triangles · ${formatBytes(asset.bytes)}`;
+    sub.textContent = [
+      asset.triangles != null ? `${asset.triangles.toLocaleString("en")} triangles` : asset.category,
+      formatBytes(asset.bytes),
+    ].join(" · ");
     meta.append(name, sub);
     card.append(img, meta);
     card.addEventListener("click", () => show(asset));
@@ -95,7 +105,7 @@ function show(asset) {
     details: [
       ["Category", asset.category],
       ["License", licenseLink(asset.license, asset.license === library.license ? library.licenseUrl : null)],
-      ["Author", asset.author],
+      ["Author", asset.author || "–"],
       ["Added", asset.added],
     ],
     actions,
@@ -109,7 +119,7 @@ $("search").addEventListener("input", renderGrid);
 try {
   // Pages lets browsers keep files for 10 minutes; revalidate the catalogue
   // so newly merged assets show up at once (an unchanged one costs a 304).
-  const response = await fetch(new URL("index.json", libraryUrl), { cache: "no-cache" });
+  const response = await fetch(catalogUrl, { cache: "no-cache" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   library = await response.json();
   if (library.description) $("library-description").textContent = library.description;
