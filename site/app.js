@@ -115,6 +115,7 @@ function show(asset) {
 }
 
 $("search").addEventListener("input", renderGrid);
+$("catalog-link").href = catalogUrl.href;
 
 try {
   // Pages lets browsers keep files for 10 minutes; revalidate the catalogue
